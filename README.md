@@ -97,12 +97,14 @@ By default, the installer uses server name `photos` and installs the binary to `
 | `get_album_contents` | Assets in an album by identifier |
 | `get_asset_details` | Full metadata for an asset |
 | `get_asset_classifications` | Vision classification labels and confidence scores for a photo |
-| `get_photo_thumbnail` | Base64 JPEG thumbnail |
-| `get_photo_full` | Full-resolution image as base64 JPEG |
+| `get_photo_thumbnail` | Export a small JPEG thumbnail to a temporary file |
+| `get_photo_full` | Export a full-resolution JPEG image to a temporary file |
 | `get_photos_by_place` | Photos by place name (e.g. Valencia, Paris)—geocodes and searches |
 | `get_photos_by_location` | Photos within a radius of lat/long |
 | `get_photos_by_date` | Photos on a date or in a range |
 | `list_moments` | Moments/collections (iOS only on macOS) |
+
+Metadata, search, stats, and classification tools declare MCP `outputSchema` values and return both `structuredContent` and JSON text content. Clients that support structured tool results can read typed data directly; older clients can continue parsing the text JSON. Image export tools are intentionally text/temp-file based for now and do not declare structured output.
 
 All list/search tools support `limit` (default 50, max 200) and `offset` for pagination.
 
@@ -138,7 +140,7 @@ PhotosMCP/
 │       │   └── ImageTools.swift      # get_photo_thumbnail, get_photo_full
 │       └── Helpers/
 │           ├── PhotoKitHelpers.swift  # PHAsset → JSON structs
-│           ├── ImageExport.swift      # PHImageManager, base64 JPEG
+│           ├── ImageExport.swift      # PHImageManager, JPEG export
 │           ├── PhotosAccess.swift     # Library authorization
 │           ├── DateParsing.swift      # ISO 8601 date parsing
 │           ├── GeoUtils.swift         # Haversine distance for location search

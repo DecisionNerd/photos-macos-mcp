@@ -14,7 +14,7 @@ fileprivate typealias ClassifierImage = UIImage
 /// PhotoKit does not expose Apple's ML search API, so we run on-device classification.
 enum ContentClassifier {
 
-    struct Classification: Encodable, Sendable {
+    struct Classification: Codable, Sendable {
         let label: String
         let confidence: Float
     }

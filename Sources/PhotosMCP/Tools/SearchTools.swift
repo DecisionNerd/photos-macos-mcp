@@ -56,7 +56,7 @@ enum SearchTools {
             }
 
             var filtered = assets
-            var keywordInfo: KeywordSearchInfo?
+            var keywordInfo: PhotoKitHelpers.KeywordSearchInfo?
             if !keyword.isEmpty {
                 let searchResult = await filterAssetsByKeywordWithFallback(assetRefs: assetRefs, keyword: keyword)
                 let matchingIndices = searchResult.indices
@@ -66,21 +66,20 @@ enum SearchTools {
 
             let total = filtered.count
             let slice = Array(filtered.dropFirst(offset).prefix(limit))
-            let json = try PhotoKitHelpers.encodeToJSON(SearchResponseWithKeywordInfo(
+            return try PhotoKitHelpers.structuredResult(PhotoKitHelpers.SearchResponseWithKeywordInfo(
                 assets: slice,
                 total: total,
                 limit: limit,
                 offset: offset,
                 keywordInfo: keywordInfo
             ))
-            return .init(content: [.text(json)], isError: false)
         }.value
     }
 
     static func getPhotosByLocation(arguments: [String: Value]?) async throws -> CallTool.Result {
         guard let lat = Double(arguments?["latitude"] ?? 0, strict: false),
               let lon = Double(arguments?["longitude"] ?? 0, strict: false) else {
-            return .init(content: [.text("Error: latitude and longitude are required")], isError: true)
+            return .init(content: [PhotoKitHelpers.textContent("Error: latitude and longitude are required")], isError: true)
         }
         let radiusKm = Double(arguments?["radius_km"] ?? 10, strict: false) ?? 10
         let limit = min(Int(arguments?["limit"] ?? 50, strict: false) ?? 50, 200)
@@ -99,8 +98,7 @@ enum SearchTools {
 
             let total = results.count
             let slice = Array(results.dropFirst(offset).prefix(limit))
-            let json = try PhotoKitHelpers.encodeToJSON(PhotoKitHelpers.SearchResponse(assets: slice, total: total, limit: limit, offset: offset))
-            return .init(content: [.text(json)], isError: false)
+            return try PhotoKitHelpers.structuredResult(PhotoKitHelpers.SearchResponse(assets: slice, total: total, limit: limit, offset: offset))
         }.value
     }
 
@@ -146,15 +144,14 @@ enum SearchTools {
             }
             let total = assets.count
             let slice = Array(assets.dropFirst(offset).prefix(limit))
-            let json = try PhotoKitHelpers.encodeToJSON(PhotoKitHelpers.SearchResponse(assets: slice, total: total, limit: limit, offset: offset))
-            return .init(content: [.text(json)], isError: false)
+            return try PhotoKitHelpers.structuredResult(PhotoKitHelpers.SearchResponse(assets: slice, total: total, limit: limit, offset: offset))
         }.value
     }
 
     /// Search photos by place name (city, country, etc.). Geocodes the name to coordinates, then finds photos nearby.
     static func getPhotosByPlace(arguments: [String: Value]?) async throws -> CallTool.Result {
         guard let placeName = String(arguments?["place"] ?? .string(""), strict: false), !placeName.isEmpty else {
-            return .init(content: [.text("Error: place name is required (e.g. 'Valencia', 'New York', 'Paris')")], isError: true)
+            return .init(content: [PhotoKitHelpers.textContent("Error: place name is required (e.g. 'Valencia', 'New York', 'Paris')")], isError: true)
         }
         let radiusKm = Double(arguments?["radius_km"] ?? 25, strict: false) ?? 25
         let limit = min(Int(arguments?["limit"] ?? 50, strict: false) ?? 50, 200)
@@ -170,10 +167,10 @@ enum SearchTools {
                 }
             }
         } catch {
-            return .init(content: [.text("Error: Could not find '\(placeName)': \(error.localizedDescription)")], isError: true)
+            return .init(content: [PhotoKitHelpers.textContent("Error: Could not find '\(placeName)': \(error.localizedDescription)")], isError: true)
         }
         guard let loc = placemarks.first?.location else {
-            return .init(content: [.text("Error: No coordinates for '\(placeName)'")], isError: true)
+            return .init(content: [PhotoKitHelpers.textContent("Error: No coordinates for '\(placeName)'")], isError: true)
         }
 
         let lat = loc.coordinate.latitude
@@ -192,34 +189,20 @@ enum SearchTools {
 
             let total = results.count
             let slice = Array(results.dropFirst(offset).prefix(limit))
-            var response = try PhotoKitHelpers.encodeToJSON(PhotoKitHelpers.SearchResponse(assets: slice, total: total, limit: limit, offset: offset))
-            response = "Place: \(placeName) (\(lat), \(lon)), radius \(radiusKm) km\n" + response
-            return .init(content: [.text(response)], isError: false)
+            return try PhotoKitHelpers.structuredResult(PhotoKitHelpers.PlaceSearchResponse(
+                place: .init(name: placeName, latitude: lat, longitude: lon, radiusKm: radiusKm),
+                assets: slice,
+                total: total,
+                limit: limit,
+                offset: offset
+            ))
         }.value
     }
 }
 
-private struct KeywordSearchInfo: Encodable {
-    let requestedKeyword: String
-    let matchedKeyword: String?
-    let usedFallback: Bool
-    let fallbackKeywords: [String]
-    let confidenceThreshold: Float
-    let analyzedAssets: Int
-    let maxAnalyzedAssets: Int
-}
-
 private struct KeywordFilterResult {
     let indices: [Int]
-    let info: KeywordSearchInfo
-}
-
-private struct SearchResponseWithKeywordInfo: Encodable {
-    let assets: [PhotoKitHelpers.AssetMetadata]
-    let total: Int
-    let limit: Int
-    let offset: Int
-    let keywordInfo: KeywordSearchInfo?
+    let info: PhotoKitHelpers.KeywordSearchInfo
 }
 
 private func filterAssetsByKeywordWithFallback(assetRefs: [PHAsset], keyword: String) async -> KeywordFilterResult {
@@ -236,7 +219,7 @@ private func filterAssetsByKeywordWithFallback(assetRefs: [PHAsset], keyword: St
     if !primaryMatches.isEmpty {
         return KeywordFilterResult(
             indices: primaryMatches,
-            info: KeywordSearchInfo(
+            info: PhotoKitHelpers.KeywordSearchInfo(
                 requestedKeyword: keyword,
                 matchedKeyword: keyword,
                 usedFallback: false,
@@ -257,7 +240,7 @@ private func filterAssetsByKeywordWithFallback(assetRefs: [PHAsset], keyword: St
         if !fallbackMatches.isEmpty {
             return KeywordFilterResult(
                 indices: fallbackMatches,
-                info: KeywordSearchInfo(
+                info: PhotoKitHelpers.KeywordSearchInfo(
                     requestedKeyword: keyword,
                     matchedKeyword: fallbackKeyword,
                     usedFallback: true,
@@ -272,7 +255,7 @@ private func filterAssetsByKeywordWithFallback(assetRefs: [PHAsset], keyword: St
 
     return KeywordFilterResult(
         indices: [],
-        info: KeywordSearchInfo(
+        info: PhotoKitHelpers.KeywordSearchInfo(
             requestedKeyword: keyword,
             matchedKeyword: nil,
             usedFallback: false,
