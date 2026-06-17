@@ -1,4 +1,5 @@
 import Foundation
+import MCP
 import Photos
 
 /// JSON-friendly representations of PhotoKit entities for MCP tool responses.
@@ -6,7 +7,7 @@ enum PhotoKitHelpers {
 
     // MARK: - Asset Metadata
 
-    struct AssetMetadata: Encodable, Sendable {
+    struct AssetMetadata: Codable, Sendable {
         let identifier: String
         let creationDate: String?
         let modificationDate: String?
@@ -20,7 +21,7 @@ enum PhotoKitHelpers {
         let location: Location?
         let resourceFileSizes: [Int]?
 
-        struct Location: Encodable, Sendable {
+        struct Location: Codable, Sendable {
             let latitude: Double
             let longitude: Double
         }
@@ -75,11 +76,18 @@ enum PhotoKitHelpers {
 
     // MARK: - Album Metadata
 
-    struct AlbumMetadata: Encodable, Sendable {
+    struct AlbumMetadata: Codable, Sendable {
         let identifier: String
         let name: String
         let assetCount: Int
         let type: String // "album" | "smart_album" | "moment"
+
+        enum CodingKeys: String, CodingKey {
+            case identifier
+            case name
+            case assetCount = "asset_count"
+            case type
+        }
     }
 
     static func albumMetadata(from collection: PHCollection) -> AlbumMetadata? {
@@ -102,13 +110,22 @@ enum PhotoKitHelpers {
 
     // MARK: - Moment Metadata
 
-    struct MomentMetadata: Encodable, Sendable {
+    struct MomentMetadata: Codable, Sendable {
         let identifier: String
         let title: String?
         let startDate: String?
         let endDate: String?
         let locationNames: [String]
         let assetCount: Int
+
+        enum CodingKeys: String, CodingKey {
+            case identifier
+            case title
+            case startDate = "start_date"
+            case endDate = "end_date"
+            case locationNames = "location_names"
+            case assetCount = "asset_count"
+        }
     }
 
     static func momentMetadata(from moment: PHAssetCollection) -> MomentMetadata {
@@ -131,11 +148,106 @@ enum PhotoKitHelpers {
 
     // MARK: - Search Response (shared by SearchTools, AlbumTools)
 
-    struct SearchResponse: Encodable {
+    struct SearchResponse: Codable, Sendable {
         let assets: [AssetMetadata]
         let total: Int
         let limit: Int
         let offset: Int
+    }
+
+    struct AlbumListResponse: Codable, Sendable {
+        let albums: [AlbumMetadata]
+        let total: Int
+        let limit: Int
+        let offset: Int
+    }
+
+    struct LibraryStatsResponse: Codable, Sendable {
+        let photos: Int
+        let videos: Int
+        let totalAssets: Int
+        let albums: Int
+        let dateRange: DateRange
+
+        enum CodingKeys: String, CodingKey {
+            case photos
+            case videos
+            case totalAssets = "total_assets"
+            case albums
+            case dateRange = "date_range"
+        }
+
+        struct DateRange: Codable, Sendable {
+            let earliest: String?
+            let latest: String?
+        }
+    }
+
+    struct MomentListResponse: Codable, Sendable {
+        let moments: [MomentMetadata]
+        let total: Int
+        let limit: Int
+        let offset: Int
+    }
+
+    struct KeywordSearchInfo: Codable, Sendable {
+        let requestedKeyword: String
+        let matchedKeyword: String?
+        let usedFallback: Bool
+        let fallbackKeywords: [String]
+        let confidenceThreshold: Float
+        let analyzedAssets: Int
+        let maxAnalyzedAssets: Int
+    }
+
+    struct SearchResponseWithKeywordInfo: Codable, Sendable {
+        let assets: [AssetMetadata]
+        let total: Int
+        let limit: Int
+        let offset: Int
+        let keywordInfo: KeywordSearchInfo?
+    }
+
+    struct PlaceSearchResponse: Codable, Sendable {
+        let place: PlaceInfo
+        let assets: [AssetMetadata]
+        let total: Int
+        let limit: Int
+        let offset: Int
+
+        struct PlaceInfo: Codable, Sendable {
+            let name: String
+            let latitude: Double
+            let longitude: Double
+            let radiusKm: Double
+
+            enum CodingKeys: String, CodingKey {
+                case name
+                case latitude
+                case longitude
+                case radiusKm = "radius_km"
+            }
+        }
+    }
+
+    struct AssetDetailsResponse: Codable, Sendable {
+        let identifier: String
+        let creationDate: String?
+        let modificationDate: String?
+        let mediaType: String
+        let mediaSubtypes: [String]
+        let pixelWidth: Int
+        let pixelHeight: Int
+        let duration: Double?
+        let isFavorite: Bool
+        let isHidden: Bool
+        let location: AssetMetadata.Location?
+        let resourceFileSizes: [Int]?
+    }
+
+    struct AssetClassificationsResponse: Codable, Sendable {
+        let assetIdentifier: String
+        let classifications: [ContentClassifier.Classification]
     }
 
     // MARK: - Encoding Helpers
@@ -149,5 +261,18 @@ enum PhotoKitHelpers {
             throw NSError(domain: "PhotoKitHelpers", code: -1, userInfo: [NSLocalizedDescriptionKey: "Failed to encode JSON"])
         }
         return str
+    }
+
+    static func structuredResult<T: Codable>(_ value: T) throws -> CallTool.Result {
+        let json = try encodeToJSON(value)
+        return try CallTool.Result(
+            content: [textContent(json)],
+            structuredContent: value,
+            isError: false
+        )
+    }
+
+    static func textContent(_ text: String) -> Tool.Content {
+        .text(text: text, annotations: nil, _meta: nil)
     }
 }

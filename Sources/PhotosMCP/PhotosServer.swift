@@ -41,7 +41,7 @@ actor PhotosServer {
             try await PhotosAccess.ensureAuthorized()
         } catch {
             return .init(
-                content: [.text("Error: \(error.localizedDescription)")],
+                content: [PhotoKitHelpers.textContent("Error: \(error.localizedDescription)")],
                 isError: true
             )
         }
@@ -73,7 +73,7 @@ actor PhotosServer {
             return try await LibraryTools.listMoments(arguments: params.arguments)
         default:
             return .init(
-                content: [.text("Unknown tool: \(params.name)")],
+                content: [PhotoKitHelpers.textContent("Unknown tool: \(params.name)")],
                 isError: true
             )
         }

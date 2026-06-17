@@ -19,7 +19,7 @@ import UIKit
 typealias PlatformImage = UIImage
 #endif
 
-/// Handles image export from PHAsset to base64-encoded JPEG for MCP.
+/// Handles image export from PHAsset to JPEG data for MCP tools.
 enum ImageExport {
 
     static func thumbnail(

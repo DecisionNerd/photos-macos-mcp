@@ -38,24 +38,12 @@ enum LibraryTools {
 
             let total = albums.count
             let slice = Array(albums.dropFirst(offset).prefix(limit))
-
-            let json: [String: Any] = [
-                "albums": slice.map { a in
-                    [
-                        "identifier": a.identifier,
-                        "name": a.name,
-                        "asset_count": a.assetCount,
-                        "type": a.type
-                    ] as [String: Any]
-                },
-                "total": total,
-                "limit": limit,
-                "offset": offset
-            ]
-
-            let data = try JSONSerialization.data(withJSONObject: json)
-            let str = String(data: data, encoding: .utf8) ?? "{}"
-            return .init(content: [.text(str)], isError: false)
+            return try PhotoKitHelpers.structuredResult(PhotoKitHelpers.AlbumListResponse(
+                albums: slice,
+                total: total,
+                limit: limit,
+                offset: offset
+            ))
         }.value
     }
 
@@ -95,20 +83,16 @@ enum LibraryTools {
             formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
             formatter.timeZone = TimeZone(identifier: "UTC")
 
-            let json: [String: Any] = [
-                "photos": photoCount,
-                "videos": videoCount,
-                "total_assets": photoCount + videoCount,
-                "albums": albumCount,
-                "date_range": [
-                    "earliest": earliest.map { formatter.string(from: $0) } as Any,
-                    "latest": latest.map { formatter.string(from: $0) } as Any
-                ] as [String: Any]
-            ]
-
-            let data = try JSONSerialization.data(withJSONObject: json)
-            let str = String(data: data, encoding: .utf8) ?? "{}"
-            return .init(content: [.text(str)], isError: false)
+            return try PhotoKitHelpers.structuredResult(PhotoKitHelpers.LibraryStatsResponse(
+                photos: photoCount,
+                videos: videoCount,
+                totalAssets: photoCount + videoCount,
+                albums: albumCount,
+                dateRange: .init(
+                    earliest: earliest.map { formatter.string(from: $0) },
+                    latest: latest.map { formatter.string(from: $0) }
+                )
+            ))
         }.value
     }
 
@@ -128,28 +112,12 @@ enum LibraryTools {
 
             let total = list.count
             let slice = Array(list.dropFirst(offset).prefix(limit))
-
-            let momentsArray = slice.map { m -> [String: Any] in
-                [
-                    "identifier": m.identifier,
-                    "title": m.title as Any,
-                    "start_date": m.startDate as Any,
-                    "end_date": m.endDate as Any,
-                    "location_names": m.locationNames,
-                    "asset_count": m.assetCount
-                ]
-            }
-
-            let jsonObj: [String: Any] = [
-                "moments": momentsArray,
-                "total": total,
-                "limit": limit,
-                "offset": offset
-            ]
-
-            let data = try JSONSerialization.data(withJSONObject: jsonObj)
-            let str = String(data: data, encoding: .utf8) ?? "{}"
-            return .init(content: [.text(str)], isError: false)
+            return try PhotoKitHelpers.structuredResult(PhotoKitHelpers.MomentListResponse(
+                moments: slice,
+                total: total,
+                limit: limit,
+                offset: offset
+            ))
         }.value
     }
 }

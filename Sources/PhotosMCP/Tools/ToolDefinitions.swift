@@ -28,6 +28,160 @@ enum ToolDefinitions {
         return .object(p)
     }
 
+    private static func object(_ properties: [String: Value], required: [String] = []) -> Value {
+        var schema: [String: Value] = [
+            "type": .string("object"),
+            "properties": .object(properties)
+        ]
+        if !required.isEmpty {
+            schema["required"] = .array(required.map { .string($0) })
+        }
+        return .object(schema)
+    }
+
+    private static func array(_ items: Value) -> Value {
+        .object([
+            "type": .string("array"),
+            "items": items
+        ])
+    }
+
+    private static func type(_ name: String, description: String? = nil) -> Value {
+        var schema: [String: Value] = ["type": .string(name)]
+        if let description {
+            schema["description"] = .string(description)
+        }
+        return .object(schema)
+    }
+
+    private static func nullable(_ names: [String]) -> Value {
+        .object(["type": .array(names.map { .string($0) })])
+    }
+
+    private static let locationSchema = object([
+        "latitude": type("number"),
+        "longitude": type("number")
+    ], required: ["latitude", "longitude"])
+
+    private static let assetSchema = object([
+        "identifier": type("string"),
+        "creationDate": nullable(["string", "null"]),
+        "modificationDate": nullable(["string", "null"]),
+        "mediaType": type("string"),
+        "mediaSubtypes": array(type("string")),
+        "pixelWidth": type("integer"),
+        "pixelHeight": type("integer"),
+        "duration": nullable(["number", "null"]),
+        "isFavorite": type("boolean"),
+        "isHidden": type("boolean"),
+        "location": .object(["anyOf": .array([locationSchema, .object(["type": .string("null")])])]),
+        "resourceFileSizes": .object(["anyOf": .array([array(type("integer")), .object(["type": .string("null")])])])
+    ], required: [
+        "identifier",
+        "creationDate",
+        "modificationDate",
+        "mediaType",
+        "mediaSubtypes",
+        "pixelWidth",
+        "pixelHeight",
+        "duration",
+        "isFavorite",
+        "isHidden",
+        "location",
+        "resourceFileSizes"
+    ])
+
+    private static let searchResponseSchema = object([
+        "assets": array(assetSchema),
+        "total": type("integer"),
+        "limit": type("integer"),
+        "offset": type("integer")
+    ], required: ["assets", "total", "limit", "offset"])
+
+    private static let keywordInfoSchema = object([
+        "requestedKeyword": type("string"),
+        "matchedKeyword": nullable(["string", "null"]),
+        "usedFallback": type("boolean"),
+        "fallbackKeywords": array(type("string")),
+        "confidenceThreshold": type("number"),
+        "analyzedAssets": type("integer"),
+        "maxAnalyzedAssets": type("integer")
+    ], required: [
+        "requestedKeyword",
+        "matchedKeyword",
+        "usedFallback",
+        "fallbackKeywords",
+        "confidenceThreshold",
+        "analyzedAssets",
+        "maxAnalyzedAssets"
+    ])
+
+    private static let searchWithKeywordInfoSchema = object([
+        "assets": array(assetSchema),
+        "total": type("integer"),
+        "limit": type("integer"),
+        "offset": type("integer"),
+        "keywordInfo": .object(["anyOf": .array([keywordInfoSchema, .object(["type": .string("null")])])])
+    ], required: ["assets", "total", "limit", "offset", "keywordInfo"])
+
+    private static let albumListSchema = object([
+        "albums": array(object([
+            "identifier": type("string"),
+            "name": type("string"),
+            "asset_count": type("integer"),
+            "type": type("string")
+        ], required: ["identifier", "name", "asset_count", "type"])),
+        "total": type("integer"),
+        "limit": type("integer"),
+        "offset": type("integer")
+    ], required: ["albums", "total", "limit", "offset"])
+
+    private static let libraryStatsSchema = object([
+        "photos": type("integer"),
+        "videos": type("integer"),
+        "total_assets": type("integer"),
+        "albums": type("integer"),
+        "date_range": object([
+            "earliest": nullable(["string", "null"]),
+            "latest": nullable(["string", "null"])
+        ], required: ["earliest", "latest"])
+    ], required: ["photos", "videos", "total_assets", "albums", "date_range"])
+
+    private static let momentListSchema = object([
+        "moments": array(object([
+            "identifier": type("string"),
+            "title": nullable(["string", "null"]),
+            "start_date": nullable(["string", "null"]),
+            "end_date": nullable(["string", "null"]),
+            "location_names": array(type("string")),
+            "asset_count": type("integer")
+        ], required: ["identifier", "title", "start_date", "end_date", "location_names", "asset_count"])),
+        "total": type("integer"),
+        "limit": type("integer"),
+        "offset": type("integer")
+    ], required: ["moments", "total", "limit", "offset"])
+
+    private static let classificationSchema = object([
+        "assetIdentifier": type("string"),
+        "classifications": array(object([
+            "label": type("string"),
+            "confidence": type("number")
+        ], required: ["label", "confidence"]))
+    ], required: ["assetIdentifier", "classifications"])
+
+    private static let placeSearchSchema = object([
+        "place": object([
+            "name": type("string"),
+            "latitude": type("number"),
+            "longitude": type("number"),
+            "radius_km": type("number")
+        ], required: ["name", "latitude", "longitude", "radius_km"]),
+        "assets": array(assetSchema),
+        "total": type("integer"),
+        "limit": type("integer"),
+        "offset": type("integer")
+    ], required: ["place", "assets", "total", "limit", "offset"])
+
     static var all: [Tool] {
         [
             Tool(
@@ -37,13 +191,15 @@ enum ToolDefinitions {
                     "limit": prop("integer", description: "Maximum number of albums to return (default 50, max 200)"),
                     "offset": prop("integer", description: "Number of albums to skip for pagination (default 0)")
                 ]),
-                annotations: .init(readOnlyHint: true)
+                annotations: .init(readOnlyHint: true),
+                outputSchema: albumListSchema
             ),
             Tool(
                 name: "get_library_stats",
                 description: "Return total counts of photos, videos, albums, and date range of the library.",
                 inputSchema: schema(properties: [:]),
-                annotations: .init(readOnlyHint: true)
+                annotations: .init(readOnlyHint: true),
+                outputSchema: libraryStatsSchema
             ),
             Tool(
                 name: "search_photos",
@@ -57,7 +213,8 @@ enum ToolDefinitions {
                     "limit": prop("integer", description: "Maximum results (default 50, max 200)"),
                     "offset": prop("integer", description: "Offset for pagination (default 0)")
                 ]),
-                annotations: .init(readOnlyHint: true)
+                annotations: .init(readOnlyHint: true),
+                outputSchema: searchWithKeywordInfoSchema
             ),
             Tool(
                 name: "get_album_contents",
@@ -67,7 +224,8 @@ enum ToolDefinitions {
                     "limit": prop("integer", description: "Maximum results (default 50, max 200)"),
                     "offset": prop("integer", description: "Offset for pagination (default 0)")
                 ], required: ["album_identifier"]),
-                annotations: .init(readOnlyHint: true)
+                annotations: .init(readOnlyHint: true),
+                outputSchema: searchResponseSchema
             ),
             Tool(
                 name: "get_asset_details",
@@ -75,7 +233,8 @@ enum ToolDefinitions {
                 inputSchema: schema(properties: [
                     "asset_identifier": prop("string", description: "The asset's local identifier")
                 ], required: ["asset_identifier"]),
-                annotations: .init(readOnlyHint: true)
+                annotations: .init(readOnlyHint: true),
+                outputSchema: assetSchema
             ),
             Tool(
                 name: "get_asset_classifications",
@@ -84,7 +243,8 @@ enum ToolDefinitions {
                     "asset_identifier": prop("string", description: "The asset's local identifier"),
                     "max_results": prop("integer", description: "Maximum classification labels to return (default 10, max 30)")
                 ], required: ["asset_identifier"]),
-                annotations: .init(readOnlyHint: true)
+                annotations: .init(readOnlyHint: true),
+                outputSchema: classificationSchema
             ),
             Tool(
                 name: "get_photo_thumbnail",
@@ -115,7 +275,8 @@ enum ToolDefinitions {
                     "limit": prop("integer", description: "Maximum results (default 50, max 200)"),
                     "offset": prop("integer", description: "Offset for pagination (default 0)")
                 ], required: ["place"]),
-                annotations: .init(readOnlyHint: true)
+                annotations: .init(readOnlyHint: true),
+                outputSchema: placeSearchSchema
             ),
             Tool(
                 name: "get_photos_by_location",
@@ -127,7 +288,8 @@ enum ToolDefinitions {
                     "limit": prop("integer", description: "Maximum results (default 50, max 200)"),
                     "offset": prop("integer", description: "Offset for pagination (default 0)")
                 ], required: ["latitude", "longitude"]),
-                annotations: .init(readOnlyHint: true)
+                annotations: .init(readOnlyHint: true),
+                outputSchema: searchResponseSchema
             ),
             Tool(
                 name: "get_photos_by_date",
@@ -139,7 +301,8 @@ enum ToolDefinitions {
                     "limit": prop("integer", description: "Maximum results (default 50, max 200)"),
                     "offset": prop("integer", description: "Offset for pagination (default 0)")
                 ]),
-                annotations: .init(readOnlyHint: true)
+                annotations: .init(readOnlyHint: true),
+                outputSchema: searchResponseSchema
             ),
             Tool(
                 name: "list_moments",
@@ -148,7 +311,8 @@ enum ToolDefinitions {
                     "limit": prop("integer", description: "Maximum moments to return (default 50, max 200)"),
                     "offset": prop("integer", description: "Offset for pagination (default 0)")
                 ]),
-                annotations: .init(readOnlyHint: true)
+                annotations: .init(readOnlyHint: true),
+                outputSchema: momentListSchema
             )
         ]
     }

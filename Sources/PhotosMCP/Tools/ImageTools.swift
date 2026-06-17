@@ -6,7 +6,7 @@ enum ImageTools {
 
     static func getPhotoThumbnail(arguments: [String: Value]?) async throws -> CallTool.Result {
         guard let assetId = String(arguments?["asset_identifier"] ?? .string(""), strict: false), !assetId.isEmpty else {
-            return .init(content: [.text("Error: asset_identifier is required")], isError: true)
+            return .init(content: [PhotoKitHelpers.textContent("Error: asset_identifier is required")], isError: true)
         }
         let maxDimension = Int(arguments?["max_dimension"] ?? 512, strict: false) ?? 512
         let quality = CGFloat(Double(arguments?["quality"] ?? 0.8, strict: false) ?? 0.8)
@@ -14,11 +14,11 @@ enum ImageTools {
         return await Task.detached(priority: .userInitiated) {
             let fetchResult = PHAsset.fetchAssets(withLocalIdentifiers: [assetId], options: nil)
             guard let asset = fetchResult.firstObject else {
-                return CallTool.Result(content: [.text("Error: Asset not found with identifier \(assetId)")], isError: true)
+                return CallTool.Result(content: [PhotoKitHelpers.textContent("Error: Asset not found with identifier \(assetId)")], isError: true)
             }
 
             guard asset.mediaType == .image else {
-                return CallTool.Result(content: [.text("Error: Asset is not a photo (media type: \(asset.mediaType.rawValue))")], isError: true)
+                return CallTool.Result(content: [PhotoKitHelpers.textContent("Error: Asset is not a photo (media type: \(asset.mediaType.rawValue))")], isError: true)
             }
 
             do {
@@ -32,10 +32,10 @@ enum ImageTools {
                 } else {
                     msg = "Thumbnail \(w)×\(h) (save failed)"
                 }
-                return CallTool.Result(content: [.text(msg)], isError: false)
+                return CallTool.Result(content: [PhotoKitHelpers.textContent(msg)], isError: false)
             } catch {
                 return CallTool.Result(
-                    content: [.text("Error: Failed to export thumbnail: \(error.localizedDescription)")],
+                    content: [PhotoKitHelpers.textContent("Error: Failed to export thumbnail: \(error.localizedDescription)")],
                     isError: true
                 )
             }
@@ -44,7 +44,7 @@ enum ImageTools {
 
     static func getPhotoFull(arguments: [String: Value]?) async throws -> CallTool.Result {
         guard let assetId = String(arguments?["asset_identifier"] ?? .string(""), strict: false), !assetId.isEmpty else {
-            return .init(content: [.text("Error: asset_identifier is required")], isError: true)
+            return .init(content: [PhotoKitHelpers.textContent("Error: asset_identifier is required")], isError: true)
         }
         let maxDimension = arguments?["max_dimension"].flatMap { Int($0, strict: false) }
         let quality = CGFloat(Double(arguments?["quality"] ?? 0.8, strict: false) ?? 0.8)
@@ -52,11 +52,11 @@ enum ImageTools {
         return await Task.detached(priority: .userInitiated) {
             let fetchResult = PHAsset.fetchAssets(withLocalIdentifiers: [assetId], options: nil)
             guard let asset = fetchResult.firstObject else {
-                return CallTool.Result(content: [.text("Error: Asset not found with identifier \(assetId)")], isError: true)
+                return CallTool.Result(content: [PhotoKitHelpers.textContent("Error: Asset not found with identifier \(assetId)")], isError: true)
             }
 
             guard asset.mediaType == .image else {
-                return CallTool.Result(content: [.text("Error: Asset is not a photo (media type: \(asset.mediaType.rawValue))")], isError: true)
+                return CallTool.Result(content: [PhotoKitHelpers.textContent("Error: Asset is not a photo (media type: \(asset.mediaType.rawValue))")], isError: true)
             }
 
             var warning: String?
@@ -79,10 +79,10 @@ enum ImageTools {
                 if let path = filePath {
                     parts.append("To view: `open \(path)`")
                 }
-                return CallTool.Result(content: [.text(parts.joined(separator: " "))], isError: false)
+                return CallTool.Result(content: [PhotoKitHelpers.textContent(parts.joined(separator: " "))], isError: false)
             } catch {
                 return CallTool.Result(
-                    content: [.text("Error: Failed to export image: \(error.localizedDescription)")],
+                    content: [PhotoKitHelpers.textContent("Error: Failed to export image: \(error.localizedDescription)")],
                     isError: true
                 )
             }
