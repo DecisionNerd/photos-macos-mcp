@@ -5,11 +5,17 @@ import Photos
 enum ImageTools {
 
     static func getPhotoThumbnail(arguments: [String: Value]?) async throws -> CallTool.Result {
-        guard let assetId = String(arguments?["asset_identifier"] ?? .string(""), strict: false), !assetId.isEmpty else {
-            return .init(content: [PhotoKitHelpers.textContent("Error: asset_identifier is required")], isError: true)
+        let assetId: String
+        let maxDimension: Int
+        let quality: CGFloat
+        do {
+            try ToolArgumentValidation.rejectUnknown(arguments, allowed: ["asset_identifier", "max_dimension", "quality"])
+            assetId = try ToolArgumentValidation.requiredString(arguments, name: "asset_identifier")
+            maxDimension = try ToolArgumentValidation.int(arguments, name: "max_dimension", default: 512, min: 1)
+            quality = CGFloat(try ToolArgumentValidation.double(arguments, name: "quality", default: 0.8, min: 0, max: 1))
+        } catch let error as ToolArgumentValidation.Failure {
+            return error.result
         }
-        let maxDimension = Int(arguments?["max_dimension"] ?? 512, strict: false) ?? 512
-        let quality = CGFloat(Double(arguments?["quality"] ?? 0.8, strict: false) ?? 0.8)
 
         return await Task.detached(priority: .userInitiated) {
             let fetchResult = PHAsset.fetchAssets(withLocalIdentifiers: [assetId], options: nil)
@@ -43,11 +49,17 @@ enum ImageTools {
     }
 
     static func getPhotoFull(arguments: [String: Value]?) async throws -> CallTool.Result {
-        guard let assetId = String(arguments?["asset_identifier"] ?? .string(""), strict: false), !assetId.isEmpty else {
-            return .init(content: [PhotoKitHelpers.textContent("Error: asset_identifier is required")], isError: true)
+        let assetId: String
+        let maxDimension: Int?
+        let quality: CGFloat
+        do {
+            try ToolArgumentValidation.rejectUnknown(arguments, allowed: ["asset_identifier", "max_dimension", "quality"])
+            assetId = try ToolArgumentValidation.requiredString(arguments, name: "asset_identifier")
+            maxDimension = try ToolArgumentValidation.optionalInt(arguments, name: "max_dimension", min: 1)
+            quality = CGFloat(try ToolArgumentValidation.double(arguments, name: "quality", default: 0.8, min: 0, max: 1))
+        } catch let error as ToolArgumentValidation.Failure {
+            return error.result
         }
-        let maxDimension = arguments?["max_dimension"].flatMap { Int($0, strict: false) }
-        let quality = CGFloat(Double(arguments?["quality"] ?? 0.8, strict: false) ?? 0.8)
 
         return await Task.detached(priority: .userInitiated) {
             let fetchResult = PHAsset.fetchAssets(withLocalIdentifiers: [assetId], options: nil)

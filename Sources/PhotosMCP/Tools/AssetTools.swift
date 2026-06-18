@@ -5,8 +5,12 @@ import Photos
 enum AssetTools {
 
     static func getAssetDetails(arguments: [String: Value]?) async throws -> CallTool.Result {
-        guard let assetId = String(arguments?["asset_identifier"] ?? .string(""), strict: false), !assetId.isEmpty else {
-            return .init(content: [PhotoKitHelpers.textContent("Error: asset_identifier is required")], isError: true)
+        let assetId: String
+        do {
+            try ToolArgumentValidation.rejectUnknown(arguments, allowed: ["asset_identifier"])
+            assetId = try ToolArgumentValidation.requiredString(arguments, name: "asset_identifier")
+        } catch let error as ToolArgumentValidation.Failure {
+            return error.result
         }
 
         return try await Task.detached(priority: .userInitiated) {
@@ -39,10 +43,15 @@ enum AssetTools {
     }
 
     static func getAssetClassifications(arguments: [String: Value]?) async throws -> CallTool.Result {
-        guard let assetId = String(arguments?["asset_identifier"] ?? .string(""), strict: false), !assetId.isEmpty else {
-            return .init(content: [PhotoKitHelpers.textContent("Error: asset_identifier is required")], isError: true)
+        let assetId: String
+        let maxResults: Int
+        do {
+            try ToolArgumentValidation.rejectUnknown(arguments, allowed: ["asset_identifier", "max_results"])
+            assetId = try ToolArgumentValidation.requiredString(arguments, name: "asset_identifier")
+            maxResults = try ToolArgumentValidation.int(arguments, name: "max_results", default: 10, min: 1, max: 30)
+        } catch let error as ToolArgumentValidation.Failure {
+            return error.result
         }
-        let maxResults = min(max(Int(arguments?["max_results"] ?? 10, strict: false) ?? 10, 1), 30)
 
         return await Task.detached(priority: .userInitiated) {
             let fetchResult = PHAsset.fetchAssets(withLocalIdentifiers: [assetId], options: nil)

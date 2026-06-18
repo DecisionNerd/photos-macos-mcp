@@ -6,13 +6,32 @@ import CoreLocation
 enum SearchTools {
 
     static func searchPhotos(arguments: [String: Value]?) async throws -> CallTool.Result {
-        let limit = min(Int(arguments?["limit"] ?? 50, strict: false) ?? 50, 200)
-        let offset = max(Int(arguments?["offset"] ?? 0, strict: false) ?? 0, 0)
-        let startDateStr = String(arguments?["start_date"] ?? .string(""), strict: false) ?? ""
-        let endDateStr = String(arguments?["end_date"] ?? .string(""), strict: false) ?? ""
-        let mediaTypeStr = String(arguments?["media_type"] ?? .string("any"), strict: false) ?? "any"
-        let isFavorite = Bool(arguments?["is_favorite"] ?? .bool(false), strict: false)
-        let keyword = String(arguments?["keyword"] ?? .string(""), strict: false) ?? ""
+        let limit: Int
+        let offset: Int
+        let startDateStr: String
+        let endDateStr: String
+        let mediaTypeStr: String
+        let isFavorite: Bool
+        let keyword: String
+        do {
+            try ToolArgumentValidation.rejectUnknown(arguments, allowed: [
+                "start_date", "end_date", "media_type", "is_favorite", "keyword", "limit", "offset"
+            ])
+            limit = try ToolArgumentValidation.int(arguments, name: "limit", default: 50, min: 1, max: 200)
+            offset = try ToolArgumentValidation.int(arguments, name: "offset", default: 0, min: 0)
+            startDateStr = try ToolArgumentValidation.optionalDateString(arguments, name: "start_date")
+            endDateStr = try ToolArgumentValidation.optionalDateString(arguments, name: "end_date")
+            mediaTypeStr = try ToolArgumentValidation.optionalEnum(
+                arguments,
+                name: "media_type",
+                default: "any",
+                allowed: ["photo", "video", "live_photo", "any"]
+            )
+            isFavorite = try ToolArgumentValidation.bool(arguments, name: "is_favorite", default: false)
+            keyword = try ToolArgumentValidation.optionalString(arguments, name: "keyword") ?? ""
+        } catch let error as ToolArgumentValidation.Failure {
+            return error.result
+        }
 
         let options = PHFetchOptions()
         var predicates: [NSPredicate] = []
@@ -23,7 +42,7 @@ enum SearchTools {
         if !endDateStr.isEmpty, let end = DateParsing.parseEndOfDay(endDateStr) ?? DateParsing.parse(endDateStr) {
             predicates.append(NSPredicate(format: "creationDate <= %@", end as NSDate))
         }
-        if let fav = isFavorite, fav {
+        if isFavorite {
             predicates.append(NSPredicate(format: "isFavorite == YES"))
         }
         if !predicates.isEmpty {
@@ -77,13 +96,23 @@ enum SearchTools {
     }
 
     static func getPhotosByLocation(arguments: [String: Value]?) async throws -> CallTool.Result {
-        guard let lat = Double(arguments?["latitude"] ?? 0, strict: false),
-              let lon = Double(arguments?["longitude"] ?? 0, strict: false) else {
-            return .init(content: [PhotoKitHelpers.textContent("Error: latitude and longitude are required")], isError: true)
+        let lat: Double
+        let lon: Double
+        let radiusKm: Double
+        let limit: Int
+        let offset: Int
+        do {
+            try ToolArgumentValidation.rejectUnknown(arguments, allowed: [
+                "latitude", "longitude", "radius_km", "limit", "offset"
+            ])
+            lat = try ToolArgumentValidation.requiredDouble(arguments, name: "latitude", min: -90, max: 90)
+            lon = try ToolArgumentValidation.requiredDouble(arguments, name: "longitude", min: -180, max: 180)
+            radiusKm = try ToolArgumentValidation.double(arguments, name: "radius_km", default: 10, min: 0, exclusiveMin: true)
+            limit = try ToolArgumentValidation.int(arguments, name: "limit", default: 50, min: 1, max: 200)
+            offset = try ToolArgumentValidation.int(arguments, name: "offset", default: 0, min: 0)
+        } catch let error as ToolArgumentValidation.Failure {
+            return error.result
         }
-        let radiusKm = Double(arguments?["radius_km"] ?? 10, strict: false) ?? 10
-        let limit = min(Int(arguments?["limit"] ?? 50, strict: false) ?? 50, 200)
-        let offset = max(Int(arguments?["offset"] ?? 0, strict: false) ?? 0, 0)
 
         return try await Task.detached(priority: .userInitiated) {
             let allPhotos = PHAsset.fetchAssets(with: .image, options: nil)
@@ -103,11 +132,23 @@ enum SearchTools {
     }
 
     static func getPhotosByDate(arguments: [String: Value]?) async throws -> CallTool.Result {
-        let dateStr = String(arguments?["date"] ?? .string(""), strict: false) ?? ""
-        let startDateStr = String(arguments?["start_date"] ?? .string(""), strict: false) ?? ""
-        let endDateStr = String(arguments?["end_date"] ?? .string(""), strict: false) ?? ""
-        let limit = min(Int(arguments?["limit"] ?? 50, strict: false) ?? 50, 200)
-        let offset = max(Int(arguments?["offset"] ?? 0, strict: false) ?? 0, 0)
+        let dateStr: String
+        let startDateStr: String
+        let endDateStr: String
+        let limit: Int
+        let offset: Int
+        do {
+            try ToolArgumentValidation.rejectUnknown(arguments, allowed: [
+                "date", "start_date", "end_date", "limit", "offset"
+            ])
+            dateStr = try ToolArgumentValidation.optionalDateString(arguments, name: "date")
+            startDateStr = try ToolArgumentValidation.optionalDateString(arguments, name: "start_date")
+            endDateStr = try ToolArgumentValidation.optionalDateString(arguments, name: "end_date")
+            limit = try ToolArgumentValidation.int(arguments, name: "limit", default: 50, min: 1, max: 200)
+            offset = try ToolArgumentValidation.int(arguments, name: "offset", default: 0, min: 0)
+        } catch let error as ToolArgumentValidation.Failure {
+            return error.result
+        }
 
         var startDate: Date?
         var endDate: Date?
@@ -150,12 +191,21 @@ enum SearchTools {
 
     /// Search photos by place name (city, country, etc.). Geocodes the name to coordinates, then finds photos nearby.
     static func getPhotosByPlace(arguments: [String: Value]?) async throws -> CallTool.Result {
-        guard let placeName = String(arguments?["place"] ?? .string(""), strict: false), !placeName.isEmpty else {
-            return .init(content: [PhotoKitHelpers.textContent("Error: place name is required (e.g. 'Valencia', 'New York', 'Paris')")], isError: true)
+        let placeName: String
+        let radiusKm: Double
+        let limit: Int
+        let offset: Int
+        do {
+            try ToolArgumentValidation.rejectUnknown(arguments, allowed: [
+                "place", "radius_km", "limit", "offset"
+            ])
+            placeName = try ToolArgumentValidation.requiredString(arguments, name: "place", displayName: "place name")
+            radiusKm = try ToolArgumentValidation.double(arguments, name: "radius_km", default: 25, min: 0, exclusiveMin: true)
+            limit = try ToolArgumentValidation.int(arguments, name: "limit", default: 50, min: 1, max: 200)
+            offset = try ToolArgumentValidation.int(arguments, name: "offset", default: 0, min: 0)
+        } catch let error as ToolArgumentValidation.Failure {
+            return error.result
         }
-        let radiusKm = Double(arguments?["radius_km"] ?? 25, strict: false) ?? 25
-        let limit = min(Int(arguments?["limit"] ?? 50, strict: false) ?? 50, 200)
-        let offset = max(Int(arguments?["offset"] ?? 0, strict: false) ?? 0, 0)
 
         let geocoder = CLGeocoder()
         let placemarks: [CLPlacemark]

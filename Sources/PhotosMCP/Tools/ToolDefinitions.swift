@@ -9,7 +9,8 @@ enum ToolDefinitions {
     ) -> Value {
         var obj: [String: Value] = [
             "type": .string("object"),
-            "properties": .object(properties)
+            "properties": .object(properties),
+            "additionalProperties": .bool(false)
         ]
         if let required = required, !required.isEmpty {
             obj["required"] = .array(required.map { .string($0) })
@@ -17,7 +18,15 @@ enum ToolDefinitions {
         return .object(obj)
     }
 
-    static func prop(_ type: String, description: String, enumValues: [String]? = nil) -> Value {
+    static func prop(
+        _ type: String,
+        description: String,
+        enumValues: [String]? = nil,
+        defaultValue: Value? = nil,
+        minimum: Value? = nil,
+        maximum: Value? = nil,
+        exclusiveMinimum: Value? = nil
+    ) -> Value {
         var p: [String: Value] = [
             "type": .string(type),
             "description": .string(description)
@@ -25,7 +34,76 @@ enum ToolDefinitions {
         if let enumValues = enumValues {
             p["enum"] = .array(enumValues.map { .string($0) })
         }
+        if let defaultValue {
+            p["default"] = defaultValue
+        }
+        if let minimum {
+            p["minimum"] = minimum
+        }
+        if let maximum {
+            p["maximum"] = maximum
+        }
+        if let exclusiveMinimum {
+            p["exclusiveMinimum"] = exclusiveMinimum
+        }
         return .object(p)
+    }
+
+    private static let dateDescription = "Date as yyyy-MM-dd or ISO 8601 datetime with timezone, e.g. 2024-01-15 or 2024-01-15T14:30:00Z"
+
+    private static func limitProp(_ description: String = "Maximum results to return") -> Value {
+        prop(
+            "integer",
+            description: "\(description) (default 50, min 1, max 200)",
+            defaultValue: .int(50),
+            minimum: .int(1),
+            maximum: .int(200)
+        )
+    }
+
+    private static func offsetProp() -> Value {
+        prop(
+            "integer",
+            description: "Number of results to skip for application-level pagination (default 0, min 0)",
+            defaultValue: .int(0),
+            minimum: .int(0)
+        )
+    }
+
+    private static func qualityProp() -> Value {
+        prop(
+            "number",
+            description: "JPEG quality from 0.0 to 1.0 (default 0.8)",
+            defaultValue: .double(0.8),
+            minimum: .double(0.0),
+            maximum: .double(1.0)
+        )
+    }
+
+    private static func maxDimensionProp(defaultValue: Int? = nil, description: String) -> Value {
+        var defaultSchema: Value?
+        if let defaultValue {
+            defaultSchema = .int(defaultValue)
+        }
+        return prop(
+            "integer",
+            description: description,
+            defaultValue: defaultSchema,
+            minimum: .int(1)
+        )
+    }
+
+    private static func radiusProp(defaultValue: Double) -> Value {
+        prop(
+            "number",
+            description: "Search radius in kilometers (default \(defaultValue), must be greater than 0)",
+            defaultValue: .double(defaultValue),
+            exclusiveMinimum: .double(0.0)
+        )
+    }
+
+    private static func dateProp(_ description: String) -> Value {
+        prop("string", description: "\(description). \(dateDescription)")
     }
 
     private static func object(_ properties: [String: Value], required: [String] = []) -> Value {
@@ -188,8 +266,8 @@ enum ToolDefinitions {
                 name: "list_albums",
                 description: "Return all user albums and smart albums with name, identifier, asset count, and type.",
                 inputSchema: schema(properties: [
-                    "limit": prop("integer", description: "Maximum number of albums to return (default 50, max 200)"),
-                    "offset": prop("integer", description: "Number of albums to skip for pagination (default 0)")
+                    "limit": limitProp("Maximum number of albums to return"),
+                    "offset": offsetProp()
                 ]),
                 annotations: .init(readOnlyHint: true),
                 outputSchema: albumListSchema
@@ -205,13 +283,13 @@ enum ToolDefinitions {
                 name: "search_photos",
                 description: "Search the Photos library by date range, media type, favorite status, or keyword.",
                 inputSchema: schema(properties: [
-                    "start_date": prop("string", description: "Start of date range (ISO 8601)"),
-                    "end_date": prop("string", description: "End of date range (ISO 8601)"),
-                    "media_type": prop("string", description: "Filter by media type", enumValues: ["photo", "video", "live_photo", "any"]),
+                    "start_date": dateProp("Start of date range"),
+                    "end_date": dateProp("End of date range"),
+                    "media_type": prop("string", description: "Filter by media type (default any)", enumValues: ["photo", "video", "live_photo", "any"], defaultValue: .string("any")),
                     "is_favorite": prop("boolean", description: "Filter to favorites only"),
                     "keyword": prop("string", description: "Filter by visual content (pizza, food, car, city, dog, beach, etc.). Uses Vision ML. Combine with date range for large libraries."),
-                    "limit": prop("integer", description: "Maximum results (default 50, max 200)"),
-                    "offset": prop("integer", description: "Offset for pagination (default 0)")
+                    "limit": limitProp(),
+                    "offset": offsetProp()
                 ]),
                 annotations: .init(readOnlyHint: true),
                 outputSchema: searchWithKeywordInfoSchema
@@ -221,8 +299,8 @@ enum ToolDefinitions {
                 description: "Return asset metadata for all items in a given album by album identifier.",
                 inputSchema: schema(properties: [
                     "album_identifier": prop("string", description: "The album's local identifier"),
-                    "limit": prop("integer", description: "Maximum results (default 50, max 200)"),
-                    "offset": prop("integer", description: "Offset for pagination (default 0)")
+                    "limit": limitProp(),
+                    "offset": offsetProp()
                 ], required: ["album_identifier"]),
                 annotations: .init(readOnlyHint: true),
                 outputSchema: searchResponseSchema
@@ -241,7 +319,7 @@ enum ToolDefinitions {
                 description: "Return Vision image classification labels and confidence scores for a photo. Useful when keyword search misses an expected object.",
                 inputSchema: schema(properties: [
                     "asset_identifier": prop("string", description: "The asset's local identifier"),
-                    "max_results": prop("integer", description: "Maximum classification labels to return (default 10, max 30)")
+                    "max_results": prop("integer", description: "Maximum classification labels to return (default 10, min 1, max 30)", defaultValue: .int(10), minimum: .int(1), maximum: .int(30))
                 ], required: ["asset_identifier"]),
                 annotations: .init(readOnlyHint: true),
                 outputSchema: classificationSchema
@@ -251,8 +329,8 @@ enum ToolDefinitions {
                 description: "Small preview (default 512px). For full resolution use get_photo_full. Saves to temp file; tell user `open /path` to view.",
                 inputSchema: schema(properties: [
                     "asset_identifier": prop("string", description: "The asset's local identifier"),
-                    "max_dimension": prop("integer", description: "Maximum width or height in pixels (default 512)"),
-                    "quality": prop("number", description: "JPEG quality 0.0-1.0 (default 0.8)")
+                    "max_dimension": maxDimensionProp(defaultValue: 512, description: "Maximum width or height in pixels (default 512, min 1)"),
+                    "quality": qualityProp()
                 ], required: ["asset_identifier"]),
                 annotations: .init(readOnlyHint: true)
             ),
@@ -261,8 +339,8 @@ enum ToolDefinitions {
                 description: "Full-resolution image (use this when user wants full size, not thumbnails). Saves to temp file; tell user `open /path` to view. Use max_dimension (e.g. 2048) to limit size.",
                 inputSchema: schema(properties: [
                     "asset_identifier": prop("string", description: "The asset's local identifier"),
-                    "max_dimension": prop("integer", description: "Optional max width/height to downscale (avoids huge payloads)"),
-                    "quality": prop("number", description: "JPEG quality 0.0-1.0 (default 0.8)")
+                    "max_dimension": maxDimensionProp(description: "Optional max width/height to downscale (min 1; avoids huge payloads)"),
+                    "quality": qualityProp()
                 ], required: ["asset_identifier"]),
                 annotations: .init(readOnlyHint: true)
             ),
@@ -271,9 +349,9 @@ enum ToolDefinitions {
                 description: "Find photos by place name (city, country). Geocodes the name and finds photos taken nearby. Use for 'photos from Valencia', 'pictures in Paris', etc.",
                 inputSchema: schema(properties: [
                     "place": prop("string", description: "Place name (e.g. 'Valencia', 'New York', 'Paris, France')"),
-                    "radius_km": prop("number", description: "Search radius in km (default 25)"),
-                    "limit": prop("integer", description: "Maximum results (default 50, max 200)"),
-                    "offset": prop("integer", description: "Offset for pagination (default 0)")
+                    "radius_km": radiusProp(defaultValue: 25),
+                    "limit": limitProp(),
+                    "offset": offsetProp()
                 ], required: ["place"]),
                 annotations: .init(readOnlyHint: true),
                 outputSchema: placeSearchSchema
@@ -282,11 +360,11 @@ enum ToolDefinitions {
                 name: "get_photos_by_location",
                 description: "Find photos within a radius (km) of given latitude and longitude coordinates.",
                 inputSchema: schema(properties: [
-                    "latitude": prop("number", description: "Center latitude"),
-                    "longitude": prop("number", description: "Center longitude"),
-                    "radius_km": prop("number", description: "Search radius in kilometers (default 10)"),
-                    "limit": prop("integer", description: "Maximum results (default 50, max 200)"),
-                    "offset": prop("integer", description: "Offset for pagination (default 0)")
+                    "latitude": prop("number", description: "Center latitude in decimal degrees", minimum: .double(-90), maximum: .double(90)),
+                    "longitude": prop("number", description: "Center longitude in decimal degrees", minimum: .double(-180), maximum: .double(180)),
+                    "radius_km": radiusProp(defaultValue: 10),
+                    "limit": limitProp(),
+                    "offset": offsetProp()
                 ], required: ["latitude", "longitude"]),
                 annotations: .init(readOnlyHint: true),
                 outputSchema: searchResponseSchema
@@ -295,11 +373,11 @@ enum ToolDefinitions {
                 name: "get_photos_by_date",
                 description: "Find photos taken on a specific date or within a date range.",
                 inputSchema: schema(properties: [
-                    "date": prop("string", description: "Specific date (ISO 8601) for photos on that day"),
-                    "start_date": prop("string", description: "Start of date range (ISO 8601)"),
-                    "end_date": prop("string", description: "End of date range (ISO 8601)"),
-                    "limit": prop("integer", description: "Maximum results (default 50, max 200)"),
-                    "offset": prop("integer", description: "Offset for pagination (default 0)")
+                    "date": dateProp("Specific date for photos on that day"),
+                    "start_date": dateProp("Start of date range"),
+                    "end_date": dateProp("End of date range"),
+                    "limit": limitProp(),
+                    "offset": offsetProp()
                 ]),
                 annotations: .init(readOnlyHint: true),
                 outputSchema: searchResponseSchema
@@ -308,8 +386,8 @@ enum ToolDefinitions {
                 name: "list_moments",
                 description: "Return photo moments/collections grouped by time and location.",
                 inputSchema: schema(properties: [
-                    "limit": prop("integer", description: "Maximum moments to return (default 50, max 200)"),
-                    "offset": prop("integer", description: "Offset for pagination (default 0)")
+                    "limit": limitProp("Maximum moments to return"),
+                    "offset": offsetProp()
                 ]),
                 annotations: .init(readOnlyHint: true),
                 outputSchema: momentListSchema
