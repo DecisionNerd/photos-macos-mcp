@@ -1,4 +1,4 @@
-// swift-tools-version: 6.0
+// swift-tools-version: 6.2
 
 import Foundation
 import PackageDescription
@@ -41,7 +41,7 @@ let testingLinkerSettings: [LinkerSetting] = {
 let package = Package(
     name: "PhotosMCP",
     platforms: [
-        .macOS(.v13)
+        .macOS(.v26)
     ],
     products: [
         .executable(name: "PhotosMCP", targets: ["PhotosMCP"])

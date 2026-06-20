@@ -1,7 +1,7 @@
 import Foundation
 import MCP
 import Photos
-import CoreLocation
+import MapKit
 
 enum SearchTools {
 
@@ -207,24 +207,30 @@ enum SearchTools {
             return error.result
         }
 
-        let geocoder = CLGeocoder()
-        let placemarks: [CLPlacemark]
+        let coordinate: (latitude: Double, longitude: Double)?
         do {
-            placemarks = try await withCheckedThrowingContinuation { (cont: CheckedContinuation<[CLPlacemark], Error>) in
-                geocoder.geocodeAddressString(placeName) { marks, error in
+            guard let request = MKGeocodingRequest(addressString: placeName) else {
+                return .init(content: [PhotoKitHelpers.textContent("Error: Could not create geocoding request for '\(placeName)'")], isError: true)
+            }
+            coordinate = try await withCheckedThrowingContinuation { (cont: CheckedContinuation<(latitude: Double, longitude: Double)?, Error>) in
+                request.getMapItems { items, error in
                     if let error = error { cont.resume(throwing: error); return }
-                    cont.resume(returning: marks ?? [])
+                    guard let location = items?.first?.location else {
+                        cont.resume(returning: nil)
+                        return
+                    }
+                    cont.resume(returning: (location.coordinate.latitude, location.coordinate.longitude))
                 }
             }
         } catch {
             return .init(content: [PhotoKitHelpers.textContent("Error: Could not find '\(placeName)': \(error.localizedDescription)")], isError: true)
         }
-        guard let loc = placemarks.first?.location else {
+        guard let coordinate else {
             return .init(content: [PhotoKitHelpers.textContent("Error: No coordinates for '\(placeName)'")], isError: true)
         }
 
-        let lat = loc.coordinate.latitude
-        let lon = loc.coordinate.longitude
+        let lat = coordinate.latitude
+        let lon = coordinate.longitude
 
         return try await Task.detached(priority: .userInitiated) {
             let allPhotos = PHAsset.fetchAssets(with: .image, options: nil)
