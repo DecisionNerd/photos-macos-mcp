@@ -39,15 +39,14 @@ enum ImageTools {
                     msg = "Thumbnail \(w)×\(h) (save failed)"
                 }
                 return CallTool.Result(
-                    content: [
-                        PhotoKitHelpers.textContent(msg),
-                        PhotoResources.exportResourceLink(
-                            for: assetId,
-                            variant: .thumbnail,
-                            maxDimension: maxDimension,
-                            quality: Double(quality)
-                        )
-                    ],
+                    content: ImageResponsePolicy.thumbnailContent(
+                        message: msg,
+                        imageBase64: imageData.base64EncodedString(),
+                        imageByteCount: imageData.count,
+                        assetIdentifier: assetId,
+                        maxDimension: maxDimension,
+                        quality: Double(quality)
+                    ),
                     isError: false
                 )
             } catch {
@@ -102,15 +101,12 @@ enum ImageTools {
                 if let path = filePath {
                     parts.append("To view: `open \(path)`")
                 }
-                var content = [PhotoKitHelpers.textContent(parts.joined(separator: " "))]
-                if let maxDimension {
-                    content.append(PhotoResources.exportResourceLink(
-                        for: assetId,
-                        variant: .full,
-                        maxDimension: maxDimension,
-                        quality: Double(quality)
-                    ))
-                }
+                let content = ImageResponsePolicy.fullContent(
+                    message: parts.joined(separator: " "),
+                    assetIdentifier: assetId,
+                    maxDimension: maxDimension,
+                    quality: Double(quality)
+                )
                 return CallTool.Result(content: content, isError: false)
             } catch {
                 return CallTool.Result(
@@ -119,6 +115,54 @@ enum ImageTools {
                 )
             }
         }.value
+    }
+}
+
+enum ImageResponsePolicy {
+    static let inlineThumbnailMaxBytes = 1_500_000
+
+    static func thumbnailContent(
+        message: String,
+        imageBase64: @autoclosure () -> String,
+        imageByteCount: Int,
+        assetIdentifier: String,
+        maxDimension: Int,
+        quality: Double
+    ) -> [Tool.Content] {
+        var content = [PhotoKitHelpers.textContent(message)]
+        if imageByteCount <= inlineThumbnailMaxBytes {
+            content.append(.image(
+                data: imageBase64(),
+                mimeType: PhotoResources.exportMimeType,
+                annotations: .init(audience: [.user], priority: 0.9),
+                _meta: nil
+            ))
+        }
+        content.append(PhotoResources.exportResourceLink(
+            for: assetIdentifier,
+            variant: .thumbnail,
+            maxDimension: maxDimension,
+            quality: quality
+        ))
+        return content
+    }
+
+    static func fullContent(
+        message: String,
+        assetIdentifier: String,
+        maxDimension: Int?,
+        quality: Double
+    ) -> [Tool.Content] {
+        var content = [PhotoKitHelpers.textContent(message)]
+        if let maxDimension {
+            content.append(PhotoResources.exportResourceLink(
+                for: assetIdentifier,
+                variant: .full,
+                maxDimension: maxDimension,
+                quality: quality
+            ))
+        }
+        return content
     }
 }
 
