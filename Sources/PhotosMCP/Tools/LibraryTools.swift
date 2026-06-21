@@ -44,12 +44,13 @@ enum LibraryTools {
             }
 
             let total = albums.count
-            let slice = Array(albums.dropFirst(offset).prefix(limit))
+            let page = PhotoKitHelpers.page(items: albums, limit: limit, offset: offset)
             return try PhotoKitHelpers.structuredResult(PhotoKitHelpers.AlbumListResponse(
-                albums: slice,
+                albums: page.items,
                 total: total,
                 limit: limit,
-                offset: offset
+                offset: offset,
+                nextOffset: page.nextOffset
             ))
         }.value
     }
@@ -131,12 +132,13 @@ enum LibraryTools {
             #endif
 
             let total = list.count
-            let slice = Array(list.dropFirst(offset).prefix(limit))
+            let page = PhotoKitHelpers.page(items: list, limit: limit, offset: offset)
             return try PhotoKitHelpers.structuredResult(PhotoKitHelpers.MomentListResponse(
-                moments: slice,
+                moments: page.items,
                 total: total,
                 limit: limit,
-                offset: offset
+                offset: offset,
+                nextOffset: page.nextOffset
             ))
         }.value
     }

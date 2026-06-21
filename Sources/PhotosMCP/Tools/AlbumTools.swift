@@ -30,8 +30,14 @@ enum AlbumTools {
             }
 
             let total = assets.count
-            let slice = Array(assets.dropFirst(offset).prefix(limit))
-            return try PhotoKitHelpers.structuredResult(PhotoKitHelpers.SearchResponse(assets: slice, total: total, limit: limit, offset: offset))
+            let page = PhotoKitHelpers.page(items: assets, limit: limit, offset: offset)
+            return try PhotoKitHelpers.structuredResult(PhotoKitHelpers.SearchResponse(
+                assets: page.items,
+                total: total,
+                limit: limit,
+                offset: offset,
+                nextOffset: page.nextOffset
+            ))
         }.value
     }
 }

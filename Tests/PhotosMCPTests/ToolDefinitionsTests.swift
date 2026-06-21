@@ -47,7 +47,36 @@ struct ToolDefinitionsTests {
         #expect(properties["total"] != nil)
         #expect(properties["limit"] != nil)
         #expect(properties["offset"] != nil)
+        #expect(properties["next_offset"] != nil)
         #expect(properties["keywordInfo"] != nil)
+    }
+
+    @Test("paginated output schemas include nullable next offset")
+    func paginatedOutputSchemasIncludeNullableNextOffset() {
+        let toolNames = [
+            "list_albums",
+            "search_photos",
+            "get_album_contents",
+            "get_photos_by_place",
+            "get_photos_by_location",
+            "get_photos_by_date",
+            "list_moments"
+        ]
+
+        for name in toolNames {
+            let tool = ToolDefinitions.all.first { $0.name == name }
+            guard case .object(let schema)? = tool?.outputSchema,
+                  case .object(let properties)? = schema["properties"],
+                  case .array(let required)? = schema["required"],
+                  case .object(let nextOffset)? = properties["next_offset"],
+                  case .array(let types)? = nextOffset["type"] else {
+                Issue.record("Expected \(name) outputSchema to include nullable next_offset")
+                return
+            }
+
+            #expect(required.contains(.string("next_offset")), "Expected \(name) to require next_offset")
+            #expect(Set(types) == Set([.string("integer"), .string("null")]), "Expected \(name) next_offset to be integer or null")
+        }
     }
 
     @Test("all tool input schemas reject additional properties")

@@ -136,6 +136,8 @@ enum ToolDefinitions {
         .object(["type": .array(names.map { .string($0) })])
     }
 
+    private static let nextOffsetSchema = nullable(["integer", "null"])
+
     private static let locationSchema = object([
         "latitude": type("number"),
         "longitude": type("number")
@@ -173,8 +175,9 @@ enum ToolDefinitions {
         "assets": array(assetSchema),
         "total": type("integer"),
         "limit": type("integer"),
-        "offset": type("integer")
-    ], required: ["assets", "total", "limit", "offset"])
+        "offset": type("integer"),
+        "next_offset": nextOffsetSchema
+    ], required: ["assets", "total", "limit", "offset", "next_offset"])
 
     private static let keywordInfoSchema = object([
         "requestedKeyword": type("string"),
@@ -199,8 +202,9 @@ enum ToolDefinitions {
         "total": type("integer"),
         "limit": type("integer"),
         "offset": type("integer"),
+        "next_offset": nextOffsetSchema,
         "keywordInfo": .object(["anyOf": .array([keywordInfoSchema, .object(["type": .string("null")])])])
-    ], required: ["assets", "total", "limit", "offset", "keywordInfo"])
+    ], required: ["assets", "total", "limit", "offset", "next_offset", "keywordInfo"])
 
     private static let albumListSchema = object([
         "albums": array(object([
@@ -211,8 +215,9 @@ enum ToolDefinitions {
         ], required: ["identifier", "name", "asset_count", "type"])),
         "total": type("integer"),
         "limit": type("integer"),
-        "offset": type("integer")
-    ], required: ["albums", "total", "limit", "offset"])
+        "offset": type("integer"),
+        "next_offset": nextOffsetSchema
+    ], required: ["albums", "total", "limit", "offset", "next_offset"])
 
     private static let libraryStatsSchema = object([
         "photos": type("integer"),
@@ -236,8 +241,9 @@ enum ToolDefinitions {
         ], required: ["identifier", "title", "start_date", "end_date", "location_names", "asset_count"])),
         "total": type("integer"),
         "limit": type("integer"),
-        "offset": type("integer")
-    ], required: ["moments", "total", "limit", "offset"])
+        "offset": type("integer"),
+        "next_offset": nextOffsetSchema
+    ], required: ["moments", "total", "limit", "offset", "next_offset"])
 
     private static let classificationSchema = object([
         "assetIdentifier": type("string"),
@@ -257,14 +263,15 @@ enum ToolDefinitions {
         "assets": array(assetSchema),
         "total": type("integer"),
         "limit": type("integer"),
-        "offset": type("integer")
-    ], required: ["place", "assets", "total", "limit", "offset"])
+        "offset": type("integer"),
+        "next_offset": nextOffsetSchema
+    ], required: ["place", "assets", "total", "limit", "offset", "next_offset"])
 
     static var all: [Tool] {
         [
             Tool(
                 name: "list_albums",
-                description: "Return all user albums and smart albums with name, identifier, asset count, and type.",
+                description: "Return all user albums and smart albums with name, identifier, asset count, type, and application-level pagination metadata.",
                 inputSchema: schema(properties: [
                     "limit": limitProp("Maximum number of albums to return"),
                     "offset": offsetProp()
@@ -281,7 +288,7 @@ enum ToolDefinitions {
             ),
             Tool(
                 name: "search_photos",
-                description: "Search the Photos library by date range, media type, favorite status, or keyword.",
+                description: "Search the Photos library by date range, media type, favorite status, or keyword with application-level pagination metadata.",
                 inputSchema: schema(properties: [
                     "start_date": dateProp("Start of date range"),
                     "end_date": dateProp("End of date range"),
@@ -296,7 +303,7 @@ enum ToolDefinitions {
             ),
             Tool(
                 name: "get_album_contents",
-                description: "Return asset metadata for all items in a given album by album identifier.",
+                description: "Return asset metadata for items in a given album by album identifier with application-level pagination metadata.",
                 inputSchema: schema(properties: [
                     "album_identifier": prop("string", description: "The album's local identifier"),
                     "limit": limitProp(),
@@ -346,7 +353,7 @@ enum ToolDefinitions {
             ),
             Tool(
                 name: "get_photos_by_place",
-                description: "Find photos by place name (city, country). Geocodes the name and finds photos taken nearby. Use for 'photos from Valencia', 'pictures in Paris', etc.",
+                description: "Find photos by place name (city, country). Geocodes the name and returns nearby photos with application-level pagination metadata.",
                 inputSchema: schema(properties: [
                     "place": prop("string", description: "Place name (e.g. 'Valencia', 'New York', 'Paris, France')"),
                     "radius_km": radiusProp(defaultValue: 25),
@@ -358,7 +365,7 @@ enum ToolDefinitions {
             ),
             Tool(
                 name: "get_photos_by_location",
-                description: "Find photos within a radius (km) of given latitude and longitude coordinates.",
+                description: "Find photos within a radius (km) of given latitude and longitude coordinates with application-level pagination metadata.",
                 inputSchema: schema(properties: [
                     "latitude": prop("number", description: "Center latitude in decimal degrees", minimum: .double(-90), maximum: .double(90)),
                     "longitude": prop("number", description: "Center longitude in decimal degrees", minimum: .double(-180), maximum: .double(180)),
@@ -371,7 +378,7 @@ enum ToolDefinitions {
             ),
             Tool(
                 name: "get_photos_by_date",
-                description: "Find photos taken on a specific date or within a date range.",
+                description: "Find photos taken on a specific date or within a date range with application-level pagination metadata.",
                 inputSchema: schema(properties: [
                     "date": dateProp("Specific date for photos on that day"),
                     "start_date": dateProp("Start of date range"),
@@ -384,7 +391,7 @@ enum ToolDefinitions {
             ),
             Tool(
                 name: "list_moments",
-                description: "Return photo moments/collections grouped by time and location.",
+                description: "Return photo moments/collections grouped by time and location with application-level pagination metadata.",
                 inputSchema: schema(properties: [
                     "limit": limitProp("Maximum moments to return"),
                     "offset": offsetProp()
