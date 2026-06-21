@@ -71,7 +71,7 @@ struct ToolDefinitionsTests {
                   case .object(let nextOffset)? = properties["next_offset"],
                   case .array(let types)? = nextOffset["type"] else {
                 Issue.record("Expected \(name) outputSchema to include nullable next_offset")
-                return
+                continue
             }
 
             #expect(required.contains(.string("next_offset")), "Expected \(name) to require next_offset")
