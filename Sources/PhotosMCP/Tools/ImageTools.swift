@@ -38,7 +38,18 @@ enum ImageTools {
                 } else {
                     msg = "Thumbnail \(w)×\(h) (save failed)"
                 }
-                return CallTool.Result(content: [PhotoKitHelpers.textContent(msg)], isError: false)
+                return CallTool.Result(
+                    content: [
+                        PhotoKitHelpers.textContent(msg),
+                        PhotoResources.exportResourceLink(
+                            for: assetId,
+                            variant: .thumbnail,
+                            maxDimension: maxDimension,
+                            quality: Double(quality)
+                        )
+                    ],
+                    isError: false
+                )
             } catch {
                 return CallTool.Result(
                     content: [PhotoKitHelpers.textContent("Error: Failed to export thumbnail: \(error.localizedDescription)")],
@@ -91,7 +102,16 @@ enum ImageTools {
                 if let path = filePath {
                     parts.append("To view: `open \(path)`")
                 }
-                return CallTool.Result(content: [PhotoKitHelpers.textContent(parts.joined(separator: " "))], isError: false)
+                var content = [PhotoKitHelpers.textContent(parts.joined(separator: " "))]
+                if let maxDimension {
+                    content.append(PhotoResources.exportResourceLink(
+                        for: assetId,
+                        variant: .full,
+                        maxDimension: maxDimension,
+                        quality: Double(quality)
+                    ))
+                }
+                return CallTool.Result(content: content, isError: false)
             } catch {
                 return CallTool.Result(
                     content: [PhotoKitHelpers.textContent("Error: Failed to export image: \(error.localizedDescription)")],

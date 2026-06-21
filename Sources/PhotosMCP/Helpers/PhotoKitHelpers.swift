@@ -396,6 +396,18 @@ enum PhotoKitHelpers {
         )
     }
 
+    static func structuredResult<T: Codable>(
+        _ value: T,
+        resourceLinks: [Tool.Content]
+    ) throws -> CallTool.Result {
+        let json = try encodeToJSON(value)
+        return try CallTool.Result(
+            content: [textContent(json)] + resourceLinks,
+            structuredContent: value,
+            isError: false
+        )
+    }
+
     static func textContent(_ text: String) -> Tool.Content {
         .text(text: text, annotations: nil, _meta: nil)
     }

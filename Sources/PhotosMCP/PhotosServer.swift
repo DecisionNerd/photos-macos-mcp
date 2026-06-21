@@ -10,7 +10,7 @@ actor PhotosServer {
     }
 
     func start(transport: some Transport) async throws {
-        await registerTools()
+        await registerHandlers()
         try await server.start(transport: transport)
     }
 
@@ -18,7 +18,7 @@ actor PhotosServer {
         await server.waitUntilCompleted()
     }
 
-    private func registerTools() async {
+    private func registerHandlers() async {
         // ListTools
         await server.withMethodHandler(ListTools.self) { [weak self] _ in
             guard let self = self else { throw MCPError.internalError("Server deallocated") }
@@ -29,6 +29,21 @@ actor PhotosServer {
         await server.withMethodHandler(CallTool.self) { [weak self] params in
             guard let self = self else { throw MCPError.internalError("Server deallocated") }
             return try await self.handleToolCall(params)
+        }
+
+        // ListResources
+        await server.withMethodHandler(ListResources.self) { _ in
+            ListResources.Result(resources: PhotoResources.listedResources, nextCursor: nil)
+        }
+
+        // ListResourceTemplates
+        await server.withMethodHandler(ListResourceTemplates.self) { _ in
+            ListResourceTemplates.Result(templates: PhotoResources.templates, nextCursor: nil)
+        }
+
+        // ReadResource
+        await server.withMethodHandler(ReadResource.self) { params in
+            return try await PhotosServer.handleResourceRead(params)
         }
     }
 
@@ -76,6 +91,26 @@ actor PhotosServer {
                 content: [PhotoKitHelpers.textContent("Unknown tool: \(params.name)")],
                 isError: true
             )
+        }
+    }
+
+    private static func handleResourceRead(_ params: ReadResource.Parameters) async throws -> ReadResource.Result {
+        do {
+            try await PhotosAccess.ensureAuthorized()
+            return try await PhotoResources.read(uri: params.uri)
+        } catch let error as PhotoResources.ResourceError {
+            switch error {
+            case .assetNotFound:
+                throw MCPError.invalidParams("Resource not found")
+            case .invalidURI(let message):
+                throw MCPError.invalidParams(message)
+            case .unsupportedMediaType:
+                throw MCPError.invalidParams(error.localizedDescription)
+            }
+        } catch let error as PhotosAccessError {
+            throw MCPError.invalidParams(error.localizedDescription)
+        } catch {
+            throw MCPError.internalError(error.localizedDescription)
         }
     }
 }

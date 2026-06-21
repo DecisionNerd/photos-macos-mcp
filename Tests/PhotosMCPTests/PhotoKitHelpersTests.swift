@@ -184,4 +184,46 @@ struct PhotoKitHelpersTests {
         }
         #expect(object["next_offset"] == .int(50))
     }
+
+    @Test("structured result can preserve JSON text while appending resource links")
+    func structuredResultCanAppendResourceLinks() throws {
+        let asset = PhotoKitHelpers.AssetMetadata(
+            identifier: "asset/one",
+            creationDate: nil,
+            modificationDate: nil,
+            mediaType: "photo",
+            mediaSubtypes: ["none"],
+            pixelWidth: 100,
+            pixelHeight: 100,
+            duration: nil,
+            isFavorite: false,
+            isHidden: false,
+            location: nil,
+            resourceFileSizes: nil
+        )
+        let response = PhotoKitHelpers.SearchResponse(
+            assets: [asset],
+            total: 1,
+            limit: 50,
+            offset: 0,
+            nextOffset: nil
+        )
+
+        let result = try PhotoKitHelpers.structuredResult(
+            response,
+            resourceLinks: [PhotoResources.assetResourceLink(for: asset)]
+        )
+
+        #expect(result.content.count == 2)
+        guard case .text(let text, _, _) = result.content[0],
+              case .resourceLink(let uri, _, _, _, let mimeType, _) = result.content[1] else {
+            Issue.record("Expected JSON text followed by a resource link")
+            return
+        }
+
+        #expect(text.contains("\"assets\""))
+        #expect(uri == "photos://asset/asset%2Fone")
+        #expect(mimeType == PhotoResources.assetMimeType)
+        #expect(result.structuredContent != nil)
+    }
 }

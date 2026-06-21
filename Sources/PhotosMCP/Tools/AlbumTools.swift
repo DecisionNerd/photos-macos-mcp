@@ -37,7 +37,7 @@ enum AlbumTools {
                 limit: limit,
                 offset: offset,
                 nextOffset: page.nextOffset
-            ))
+            ), resourceLinks: page.items.map(PhotoResources.assetResourceLink))
         }.value
     }
 }
