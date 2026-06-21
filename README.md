@@ -4,8 +4,8 @@ A **Model Context Protocol (MCP) server** in Swift that provides AI assistants w
 
 ## Requirements
 
-- macOS 13.0+
-- Swift 6.0+ (Xcode 16+)
+- macOS 26.0+
+- Swift 6.2+ (Xcode 26+)
 - Photos app with a library
 
 ## Building
