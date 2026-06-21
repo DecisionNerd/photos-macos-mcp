@@ -4,8 +4,8 @@ A **Model Context Protocol (MCP) server** in Swift that provides AI assistants w
 
 ## Requirements
 
-- macOS 13.0+
-- Swift 6.0+ (Xcode 16+)
+- macOS 26.0+
+- Swift 6.2+ (Xcode 26+)
 - Photos app with a library
 
 ## Building
@@ -104,9 +104,9 @@ By default, the installer uses server name `photos` and installs the binary to `
 | `get_photos_by_date` | Photos on a date or in a range |
 | `list_moments` | Moments/collections (iOS only on macOS) |
 
-Metadata, search, stats, and classification tools declare MCP `outputSchema` values and return both `structuredContent` and JSON text content. Clients that support structured tool results can read typed data directly; older clients can continue parsing the text JSON. Image export tools are intentionally text/temp-file based for now and do not declare structured output.
+Tool definitions use strict MCP `inputSchema` objects with machine-readable defaults, bounds, enums, required fields, and `additionalProperties: false`. Metadata, search, stats, and classification tools also declare MCP `outputSchema` values and return both `structuredContent` and JSON text content. Clients that support structured tool results can read typed data directly; older clients can continue parsing the text JSON. Image export tools are intentionally text/temp-file based for now and do not declare structured output.
 
-All list/search tools support `limit` (default 50, max 200) and `offset` for pagination.
+All list/search tools support `limit` (default 50, min 1, max 200) and `offset` (default 0, min 0) for application-level pagination. Runtime validation rejects unknown arguments and out-of-range values before PhotoKit, geocoding, or image export work begins.
 
 ## Permissions
 

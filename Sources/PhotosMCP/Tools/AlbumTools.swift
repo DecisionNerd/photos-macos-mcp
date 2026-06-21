@@ -5,11 +5,17 @@ import Photos
 enum AlbumTools {
 
     static func getAlbumContents(arguments: [String: Value]?) async throws -> CallTool.Result {
-        guard let albumId = String(arguments?["album_identifier"] ?? .string(""), strict: false), !albumId.isEmpty else {
-            return .init(content: [PhotoKitHelpers.textContent("Error: album_identifier is required")], isError: true)
+        let albumId: String
+        let limit: Int
+        let offset: Int
+        do {
+            try ToolArgumentValidation.rejectUnknown(arguments, allowed: ["album_identifier", "limit", "offset"])
+            albumId = try ToolArgumentValidation.requiredString(arguments, name: "album_identifier")
+            limit = try ToolArgumentValidation.int(arguments, name: "limit", default: 50, min: 1, max: 200)
+            offset = try ToolArgumentValidation.int(arguments, name: "offset", default: 0, min: 0)
+        } catch let error as ToolArgumentValidation.Failure {
+            return error.result
         }
-        let limit = min(Int(arguments?["limit"] ?? 50, strict: false) ?? 50, 200)
-        let offset = max(Int(arguments?["offset"] ?? 0, strict: false) ?? 0, 0)
 
         return try await Task.detached(priority: .userInitiated) {
             let collections = PHAssetCollection.fetchAssetCollections(withLocalIdentifiers: [albumId], options: nil)

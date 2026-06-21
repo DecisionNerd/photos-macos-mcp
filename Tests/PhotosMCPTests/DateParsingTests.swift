@@ -1,4 +1,3 @@
-import Foundation
 import Testing
 @testable import PhotosMCP
 
@@ -8,32 +7,14 @@ struct DateParsingTests {
     func parseISO8601() {
         let d = DateParsing.parse("2024-01-15T14:30:00Z")
         #expect(d != nil)
-        var cal = Calendar(identifier: .gregorian)
-        cal.timeZone = TimeZone(identifier: "UTC") ?? .current
-        let components = cal.dateComponents(
-            [.year, .month, .day, .hour, .minute],
-            from: d!
-        )
-        #expect(components.year == 2024)
-        #expect(components.month == 1)
-        #expect(components.day == 15)
-        #expect(components.hour == 14)
-        #expect(components.minute == 30)
+        #expect(abs(d!.timeIntervalSince1970 - 1_705_329_000) < 0.001)
     }
 
     @Test("parse date-only yyyy-MM-dd")
     func parseDateOnly() {
         let d = DateParsing.parse("2024-06-20")
         #expect(d != nil)
-        var cal = Calendar(identifier: .gregorian)
-        cal.timeZone = TimeZone(identifier: "UTC") ?? .current
-        let components = cal.dateComponents(
-            [.year, .month, .day],
-            from: d!
-        )
-        #expect(components.year == 2024)
-        #expect(components.month == 6)
-        #expect(components.day == 20)
+        #expect(abs(d!.timeIntervalSince1970 - 1_718_841_600) < 0.001)
     }
 
     @Test("parse empty string returns nil")
@@ -52,18 +33,7 @@ struct DateParsingTests {
     func parseEndOfDay() {
         let d = DateParsing.parseEndOfDay("2024-01-15")
         #expect(d != nil)
-        var cal = Calendar(identifier: .gregorian)
-        cal.timeZone = TimeZone(identifier: "UTC") ?? .current
-        let components = cal.dateComponents(
-            [.year, .month, .day, .hour, .minute, .second],
-            from: d!
-        )
-        #expect(components.year == 2024)
-        #expect(components.month == 1)
-        #expect(components.day == 15)
-        #expect(components.hour == 23)
-        #expect(components.minute == 59)
-        #expect(components.second == 59)
+        #expect(abs(d!.timeIntervalSince1970 - 1_705_363_199.999) < 0.001)
     }
 
     @Test("parseEndOfDay with invalid string returns nil")
