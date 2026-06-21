@@ -84,12 +84,13 @@ enum SearchTools {
             }
 
             let total = filtered.count
-            let slice = Array(filtered.dropFirst(offset).prefix(limit))
+            let page = PhotoKitHelpers.page(items: filtered, limit: limit, offset: offset)
             return try PhotoKitHelpers.structuredResult(PhotoKitHelpers.SearchResponseWithKeywordInfo(
-                assets: slice,
+                assets: page.items,
                 total: total,
                 limit: limit,
                 offset: offset,
+                nextOffset: page.nextOffset,
                 keywordInfo: keywordInfo
             ))
         }.value
@@ -126,8 +127,14 @@ enum SearchTools {
             }
 
             let total = results.count
-            let slice = Array(results.dropFirst(offset).prefix(limit))
-            return try PhotoKitHelpers.structuredResult(PhotoKitHelpers.SearchResponse(assets: slice, total: total, limit: limit, offset: offset))
+            let page = PhotoKitHelpers.page(items: results, limit: limit, offset: offset)
+            return try PhotoKitHelpers.structuredResult(PhotoKitHelpers.SearchResponse(
+                assets: page.items,
+                total: total,
+                limit: limit,
+                offset: offset,
+                nextOffset: page.nextOffset
+            ))
         }.value
     }
 
@@ -184,8 +191,14 @@ enum SearchTools {
                 assets.append(PhotoKitHelpers.metadata(from: asset))
             }
             let total = assets.count
-            let slice = Array(assets.dropFirst(offset).prefix(limit))
-            return try PhotoKitHelpers.structuredResult(PhotoKitHelpers.SearchResponse(assets: slice, total: total, limit: limit, offset: offset))
+            let page = PhotoKitHelpers.page(items: assets, limit: limit, offset: offset)
+            return try PhotoKitHelpers.structuredResult(PhotoKitHelpers.SearchResponse(
+                assets: page.items,
+                total: total,
+                limit: limit,
+                offset: offset,
+                nextOffset: page.nextOffset
+            ))
         }.value
     }
 
@@ -244,13 +257,14 @@ enum SearchTools {
             }
 
             let total = results.count
-            let slice = Array(results.dropFirst(offset).prefix(limit))
+            let page = PhotoKitHelpers.page(items: results, limit: limit, offset: offset)
             return try PhotoKitHelpers.structuredResult(PhotoKitHelpers.PlaceSearchResponse(
                 place: .init(name: placeName, latitude: lat, longitude: lon, radiusKm: radiusKm),
-                assets: slice,
+                assets: page.items,
                 total: total,
                 limit: limit,
-                offset: offset
+                offset: offset,
+                nextOffset: page.nextOffset
             ))
         }.value
     }

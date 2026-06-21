@@ -148,11 +148,55 @@ enum PhotoKitHelpers {
 
     // MARK: - Search Response (shared by SearchTools, AlbumTools)
 
+    struct Page<T: Sendable>: Sendable {
+        let items: [T]
+        let nextOffset: Int?
+    }
+
+    static func page<T: Sendable>(items: [T], limit: Int, offset: Int) -> Page<T> {
+        let slice = Array(items.dropFirst(offset).prefix(limit))
+        let nextOffset = offset + slice.count
+        return Page(
+            items: slice,
+            nextOffset: nextOffset < items.count ? nextOffset : nil
+        )
+    }
+
+    private static func encodeNextOffset<Key: CodingKey>(
+        _ nextOffset: Int?,
+        to container: inout KeyedEncodingContainer<Key>,
+        forKey key: Key
+    ) throws {
+        if let nextOffset {
+            try container.encode(nextOffset, forKey: key)
+        } else {
+            try container.encodeNil(forKey: key)
+        }
+    }
+
     struct SearchResponse: Codable, Sendable {
         let assets: [AssetMetadata]
         let total: Int
         let limit: Int
         let offset: Int
+        let nextOffset: Int?
+
+        enum CodingKeys: String, CodingKey {
+            case assets
+            case total
+            case limit
+            case offset
+            case nextOffset = "next_offset"
+        }
+
+        func encode(to encoder: Encoder) throws {
+            var container = encoder.container(keyedBy: CodingKeys.self)
+            try container.encode(assets, forKey: .assets)
+            try container.encode(total, forKey: .total)
+            try container.encode(limit, forKey: .limit)
+            try container.encode(offset, forKey: .offset)
+            try PhotoKitHelpers.encodeNextOffset(nextOffset, to: &container, forKey: .nextOffset)
+        }
     }
 
     struct AlbumListResponse: Codable, Sendable {
@@ -160,6 +204,24 @@ enum PhotoKitHelpers {
         let total: Int
         let limit: Int
         let offset: Int
+        let nextOffset: Int?
+
+        enum CodingKeys: String, CodingKey {
+            case albums
+            case total
+            case limit
+            case offset
+            case nextOffset = "next_offset"
+        }
+
+        func encode(to encoder: Encoder) throws {
+            var container = encoder.container(keyedBy: CodingKeys.self)
+            try container.encode(albums, forKey: .albums)
+            try container.encode(total, forKey: .total)
+            try container.encode(limit, forKey: .limit)
+            try container.encode(offset, forKey: .offset)
+            try PhotoKitHelpers.encodeNextOffset(nextOffset, to: &container, forKey: .nextOffset)
+        }
     }
 
     struct LibraryStatsResponse: Codable, Sendable {
@@ -188,6 +250,24 @@ enum PhotoKitHelpers {
         let total: Int
         let limit: Int
         let offset: Int
+        let nextOffset: Int?
+
+        enum CodingKeys: String, CodingKey {
+            case moments
+            case total
+            case limit
+            case offset
+            case nextOffset = "next_offset"
+        }
+
+        func encode(to encoder: Encoder) throws {
+            var container = encoder.container(keyedBy: CodingKeys.self)
+            try container.encode(moments, forKey: .moments)
+            try container.encode(total, forKey: .total)
+            try container.encode(limit, forKey: .limit)
+            try container.encode(offset, forKey: .offset)
+            try PhotoKitHelpers.encodeNextOffset(nextOffset, to: &container, forKey: .nextOffset)
+        }
     }
 
     struct KeywordSearchInfo: Codable, Sendable {
@@ -205,7 +285,31 @@ enum PhotoKitHelpers {
         let total: Int
         let limit: Int
         let offset: Int
+        let nextOffset: Int?
         let keywordInfo: KeywordSearchInfo?
+
+        enum CodingKeys: String, CodingKey {
+            case assets
+            case total
+            case limit
+            case offset
+            case nextOffset = "next_offset"
+            case keywordInfo
+        }
+
+        func encode(to encoder: Encoder) throws {
+            var container = encoder.container(keyedBy: CodingKeys.self)
+            try container.encode(assets, forKey: .assets)
+            try container.encode(total, forKey: .total)
+            try container.encode(limit, forKey: .limit)
+            try container.encode(offset, forKey: .offset)
+            try PhotoKitHelpers.encodeNextOffset(nextOffset, to: &container, forKey: .nextOffset)
+            if let keywordInfo {
+                try container.encode(keywordInfo, forKey: .keywordInfo)
+            } else {
+                try container.encodeNil(forKey: .keywordInfo)
+            }
+        }
     }
 
     struct PlaceSearchResponse: Codable, Sendable {
@@ -214,6 +318,26 @@ enum PhotoKitHelpers {
         let total: Int
         let limit: Int
         let offset: Int
+        let nextOffset: Int?
+
+        enum CodingKeys: String, CodingKey {
+            case place
+            case assets
+            case total
+            case limit
+            case offset
+            case nextOffset = "next_offset"
+        }
+
+        func encode(to encoder: Encoder) throws {
+            var container = encoder.container(keyedBy: CodingKeys.self)
+            try container.encode(place, forKey: .place)
+            try container.encode(assets, forKey: .assets)
+            try container.encode(total, forKey: .total)
+            try container.encode(limit, forKey: .limit)
+            try container.encode(offset, forKey: .offset)
+            try PhotoKitHelpers.encodeNextOffset(nextOffset, to: &container, forKey: .nextOffset)
+        }
 
         struct PlaceInfo: Codable, Sendable {
             let name: String

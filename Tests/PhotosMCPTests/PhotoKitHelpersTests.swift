@@ -10,13 +10,15 @@ struct PhotoKitHelpersTests {
             assets: [],
             total: 0,
             limit: 50,
-            offset: 0
+            offset: 0,
+            nextOffset: nil
         )
         let json = try PhotoKitHelpers.encodeToJSON(response)
         #expect(json.contains("\"assets\""))
         #expect(json.contains("\"total\""))
         #expect(json.contains("\"limit\""))
         #expect(json.contains("\"offset\""))
+        #expect(json.contains("\"next_offset\" : null"))
         #expect(json.contains("\"total\" : 0"))
     }
 
@@ -40,7 +42,8 @@ struct PhotoKitHelpersTests {
             assets: [asset],
             total: 1,
             limit: 50,
-            offset: 0
+            offset: 0,
+            nextOffset: nil
         )
         let json = try PhotoKitHelpers.encodeToJSON(response)
         #expect(json.contains("test-id"))
@@ -94,9 +97,11 @@ struct PhotoKitHelpersTests {
             albums: [album],
             total: 1,
             limit: 50,
-            offset: 0
+            offset: 0,
+            nextOffset: 50
         ))
         #expect(albumJSON.contains("\"asset_count\""))
+        #expect(albumJSON.contains("\"next_offset\" : 50"))
 
         let moment = PhotoKitHelpers.MomentMetadata(
             identifier: "moment-id",
@@ -110,19 +115,73 @@ struct PhotoKitHelpersTests {
             moments: [moment],
             total: 1,
             limit: 50,
-            offset: 0
+            offset: 0,
+            nextOffset: nil
         ))
         #expect(momentJSON.contains("\"start_date\""))
         #expect(momentJSON.contains("\"location_names\""))
+        #expect(momentJSON.contains("\"next_offset\" : null"))
 
         let placeJSON = try PhotoKitHelpers.encodeToJSON(PhotoKitHelpers.PlaceSearchResponse(
             place: .init(name: "Denver", latitude: 39.7392, longitude: -104.9903, radiusKm: 25),
             assets: [],
             total: 0,
             limit: 50,
-            offset: 0
+            offset: 0,
+            nextOffset: nil
         ))
         #expect(placeJSON.contains("\"radius_km\""))
+        #expect(placeJSON.contains("\"next_offset\" : null"))
         #expect(placeJSON.hasPrefix("{"))
+    }
+
+    @Test("pagination helper returns continuation offsets")
+    func paginationHelperReturnsContinuationOffsets() {
+        let items = Array(0..<10)
+
+        let first = PhotoKitHelpers.page(items: items, limit: 3, offset: 0)
+        #expect(first.items == [0, 1, 2])
+        #expect(first.nextOffset == 3)
+
+        let middle = PhotoKitHelpers.page(items: items, limit: 3, offset: 3)
+        #expect(middle.items == [3, 4, 5])
+        #expect(middle.nextOffset == 6)
+
+        let final = PhotoKitHelpers.page(items: items, limit: 3, offset: 9)
+        #expect(final.items == [9])
+        #expect(final.nextOffset == nil)
+
+        let exactBoundary = PhotoKitHelpers.page(items: items, limit: 5, offset: 5)
+        #expect(exactBoundary.items == [5, 6, 7, 8, 9])
+        #expect(exactBoundary.nextOffset == nil)
+
+        let outOfRange = PhotoKitHelpers.page(items: items, limit: 3, offset: 20)
+        #expect(outOfRange.items.isEmpty)
+        #expect(outOfRange.nextOffset == nil)
+    }
+
+    @Test("structured paginated result includes next offset in both payloads")
+    func structuredPaginatedResultIncludesNextOffsetInBothPayloads() throws {
+        let response = PhotoKitHelpers.SearchResponse(
+            assets: [],
+            total: 100,
+            limit: 50,
+            offset: 0,
+            nextOffset: 50
+        )
+
+        let result = try PhotoKitHelpers.structuredResult(response)
+
+        guard case .text(let text, _, _) = result.content[0] else {
+            Issue.record("Expected text content")
+            return
+        }
+        #expect(text.contains("\"next_offset\" : 50"))
+
+        guard case .object(let object)? = result.structuredContent else {
+            Issue.record("Expected structured object")
+            return
+        }
+        #expect(object["next_offset"] == .int(50))
     }
 }

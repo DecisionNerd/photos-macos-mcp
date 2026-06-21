@@ -106,7 +106,7 @@ By default, the installer uses server name `photos` and installs the binary to `
 
 Tool definitions use strict MCP `inputSchema` objects with machine-readable defaults, bounds, enums, required fields, and `additionalProperties: false`. Metadata, search, stats, and classification tools also declare MCP `outputSchema` values and return both `structuredContent` and JSON text content. Clients that support structured tool results can read typed data directly; older clients can continue parsing the text JSON. Image export tools are intentionally text/temp-file based for now and do not declare structured output.
 
-All list/search tools support `limit` (default 50, min 1, max 200) and `offset` (default 0, min 0) for application-level pagination. Runtime validation rejects unknown arguments and out-of-range values before PhotoKit, geocoding, or image export work begins.
+All list/search tools support `limit` (default 50, min 1, max 200) and `offset` (default 0, min 0) for Photos application-level pagination. Paginated responses include `total`, `limit`, `offset`, and `next_offset`; use `next_offset` as the next `offset` value, or stop when it is `null`. This is separate from MCP protocol cursor pagination, which applies to protocol list methods such as `tools/list`, not Photos result tools. Runtime validation rejects unknown arguments and out-of-range values before PhotoKit, geocoding, or image export work begins.
 
 ## Permissions
 
