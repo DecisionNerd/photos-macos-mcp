@@ -13,7 +13,10 @@ enum PhotosMCPMain {
             name: "PhotosMCP",
             version: "1.0.0",
             instructions: "This server provides read-only access to the macOS Photos library. Use it to search photos, list albums, view metadata, and retrieve image thumbnails or full-size images.",
-            capabilities: .init(tools: .init(listChanged: true))
+            capabilities: .init(
+                resources: .init(),
+                tools: .init(listChanged: true)
+            )
         ))
 
         let transport = StdioTransport(logger: logger)

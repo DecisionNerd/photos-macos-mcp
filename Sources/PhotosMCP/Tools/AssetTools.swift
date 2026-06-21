@@ -38,7 +38,10 @@ enum AssetTools {
                 resourceFileSizes: nil
             )
 
-            return try PhotoKitHelpers.structuredResult(metaWithSizes)
+            return try PhotoKitHelpers.structuredResult(
+                metaWithSizes,
+                resourceLinks: [PhotoResources.assetResourceLink(for: meta)]
+            )
         }.value
     }
 

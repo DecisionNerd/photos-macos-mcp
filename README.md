@@ -104,9 +104,20 @@ By default, the installer uses server name `photos` and installs the binary to `
 | `get_photos_by_date` | Photos on a date or in a range |
 | `list_moments` | Moments/collections (iOS only on macOS) |
 
-Tool definitions use strict MCP `inputSchema` objects with machine-readable defaults, bounds, enums, required fields, and `additionalProperties: false`. Metadata, search, stats, and classification tools also declare MCP `outputSchema` values and return both `structuredContent` and JSON text content. Clients that support structured tool results can read typed data directly; older clients can continue parsing the text JSON. Image export tools are intentionally text/temp-file based for now and do not declare structured output.
+Tool definitions use strict MCP `inputSchema` objects with machine-readable defaults, bounds, enums, required fields, and `additionalProperties: false`. Metadata, search, stats, and classification tools also declare MCP `outputSchema` values and return both `structuredContent` and JSON text content. Clients that support structured tool results can read typed data directly; older clients can continue parsing the text JSON. Image export tools remain text/temp-file based for compatibility and do not declare structured output.
 
 All list/search tools support `limit` (default 50, min 1, max 200) and `offset` (default 0, min 0) for Photos application-level pagination. Paginated responses include `total`, `limit`, `offset`, and `next_offset`; use `next_offset` as the next `offset` value, or stop when it is `null`. This is separate from MCP protocol cursor pagination, which applies to protocol list methods such as `tools/list`, not Photos result tools. Runtime validation rejects unknown arguments and out-of-range values before PhotoKit, geocoding, or image export work begins.
+
+## MCP Resources
+
+PhotosMCP also exposes MCP resource templates for clients that support `resources/templates/list` and `resources/read`:
+
+- `photos://asset/{asset_identifier}` returns asset metadata JSON as `application/json`.
+- `photos://export/{asset_identifier}{?variant,max_dimension,quality}` returns bounded JPEG data as `image/jpeg`. `variant` must be `thumbnail` or `full`, `max_dimension` is required, and `quality` defaults to `0.8` when omitted.
+
+Tool results include `resource_link` entries where useful: asset detail/search results link to metadata resources, thumbnail exports link to bounded thumbnail resources, and full-image exports link to bounded full export resources only when `max_dimension` is provided. Clients without resource support can keep using the existing JSON text, structured content, and temp-file instructions.
+
+Full-resolution unbounded binary transfer through MCP resources is intentionally not supported yet. Broader image-transfer strategy and size-limit policy are tracked separately.
 
 ## Permissions
 
@@ -120,6 +131,7 @@ This server is read-only. It does not modify, delete, or create assets or albums
 
 - **Place search** (`get_photos_by_place`): Place names you provide (e.g. "Valencia", "Paris") are sent to Apple's geocoding service to resolve coordinates. This may involve network requests.
 - **Image export**: Thumbnails and full images are written to a `PhotosMCP` subdirectory in the system temp folder. Files older than 1 hour are automatically deleted when new exports occur.
+- **MCP resources**: Metadata and bounded JPEG resources are generated on demand from Photos asset identifiers. Resource URIs do not expose local filesystem paths and cannot read arbitrary temp files.
 
 ## Project Structure
 

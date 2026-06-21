@@ -92,7 +92,7 @@ enum SearchTools {
                 offset: offset,
                 nextOffset: page.nextOffset,
                 keywordInfo: keywordInfo
-            ))
+            ), resourceLinks: page.items.map(PhotoResources.assetResourceLink))
         }.value
     }
 
@@ -134,7 +134,7 @@ enum SearchTools {
                 limit: limit,
                 offset: offset,
                 nextOffset: page.nextOffset
-            ))
+            ), resourceLinks: page.items.map(PhotoResources.assetResourceLink))
         }.value
     }
 
@@ -198,7 +198,7 @@ enum SearchTools {
                 limit: limit,
                 offset: offset,
                 nextOffset: page.nextOffset
-            ))
+            ), resourceLinks: page.items.map(PhotoResources.assetResourceLink))
         }.value
     }
 
@@ -265,7 +265,7 @@ enum SearchTools {
                 limit: limit,
                 offset: offset,
                 nextOffset: page.nextOffset
-            ))
+            ), resourceLinks: page.items.map(PhotoResources.assetResourceLink))
         }.value
     }
 }
