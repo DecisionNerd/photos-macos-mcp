@@ -333,7 +333,7 @@ enum ToolDefinitions {
             ),
             Tool(
                 name: "get_photo_thumbnail",
-                description: "Small preview (default 512px). For full resolution use get_photo_full. Saves to temp file; tell user `open /path` to view.",
+                description: "Small preview (default 512px). Returns temp-file text first, may include inline JPEG image content when under 1.5 MB, and includes a bounded resource_link for portable MCP clients.",
                 inputSchema: schema(properties: [
                     "asset_identifier": prop("string", description: "The asset's local identifier"),
                     "max_dimension": maxDimensionProp(defaultValue: 512, description: "Maximum width or height in pixels (default 512, min 1)"),
@@ -343,7 +343,7 @@ enum ToolDefinitions {
             ),
             Tool(
                 name: "get_photo_full",
-                description: "Full-resolution image (use this when user wants full size, not thumbnails). Saves to temp file; tell user `open /path` to view. Use max_dimension (e.g. 2048) to limit size.",
+                description: "Full image export. Always returns temp-file text first and never inline image content; includes a bounded resource_link only when max_dimension is provided for portable MCP transfer.",
                 inputSchema: schema(properties: [
                     "asset_identifier": prop("string", description: "The asset's local identifier"),
                     "max_dimension": maxDimensionProp(description: "Optional max width/height to downscale (min 1; avoids huge payloads)"),

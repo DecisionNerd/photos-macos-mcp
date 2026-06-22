@@ -33,6 +33,21 @@ struct ToolDefinitionsTests {
         #expect(toolsByName["get_photo_full"]?.outputSchema == nil)
     }
 
+    @Test("image export descriptions document hybrid transfer contract")
+    func imageExportDescriptionsDocumentHybridTransferContract() {
+        let toolsByName = Dictionary(uniqueKeysWithValues: ToolDefinitions.all.map { ($0.name, $0) })
+        let thumbnailDescription = toolsByName["get_photo_thumbnail"]?.description ?? ""
+        let fullDescription = toolsByName["get_photo_full"]?.description ?? ""
+
+        #expect(thumbnailDescription.contains("temp-file text"))
+        #expect(thumbnailDescription.contains("inline JPEG image content"))
+        #expect(thumbnailDescription.contains("resource_link"))
+        #expect(fullDescription.contains("temp-file text"))
+        #expect(fullDescription.contains("never inline image content"))
+        #expect(fullDescription.contains("resource_link"))
+        #expect(fullDescription.contains("max_dimension"))
+    }
+
     @Test("search output schema describes expected top-level fields")
     func searchOutputSchemaDescribesTopLevelFields() {
         let searchTool = ToolDefinitions.all.first { $0.name == "search_photos" }
