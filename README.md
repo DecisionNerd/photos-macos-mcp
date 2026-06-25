@@ -108,6 +108,22 @@ Tool definitions use strict MCP `inputSchema` objects with machine-readable defa
 
 All list/search tools support `limit` (default 50, min 1, max 200) and `offset` (default 0, min 0) for Photos application-level pagination. Paginated responses include `total`, `limit`, `offset`, and `next_offset`; use `next_offset` as the next `offset` value, or stop when it is `null`. This is separate from MCP protocol cursor pagination, which applies to protocol list methods such as `tools/list`, not Photos result tools. Runtime validation rejects unknown arguments and out-of-range values before PhotoKit, geocoding, or image export work begins.
 
+Tool execution errors return `isError: true` with JSON text as the first content item and the same envelope in `_meta.photos_error`. The envelope fields are `code`, `category`, `message`, `retryable`, and `remediation`; categories include `validation`, `permission`, `not_found`, `unsupported_media_type`, `external_service`, `export`, `photokit`, and `internal`. Error envelopes intentionally do not use `structuredContent`, because `structuredContent` is reserved for successful outputs that match each tool's `outputSchema`.
+
+Example validation error:
+
+```json
+{
+  "code": "validation.required_argument",
+  "category": "validation",
+  "message": "asset_identifier is required",
+  "retryable": true,
+  "remediation": "Provide asset_identifier using the tool input schema and retry."
+}
+```
+
+Unknown tool names are returned as MCP protocol errors (`invalidParams`) instead of tool execution errors. This matches current MCP guidance: malformed or unsupported `tools/call` requests are protocol errors, while recoverable validation, permission, not-found, geocoding, and export failures are tool results with `isError: true`.
+
 ## MCP Resources
 
 PhotosMCP also exposes MCP resource templates for clients that support `resources/templates/list` and `resources/read`:

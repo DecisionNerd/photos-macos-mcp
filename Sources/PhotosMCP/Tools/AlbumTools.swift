@@ -20,7 +20,7 @@ enum AlbumTools {
         return try await Task.detached(priority: .userInitiated) {
             let collections = PHAssetCollection.fetchAssetCollections(withLocalIdentifiers: [albumId], options: nil)
             guard let collection = collections.firstObject else {
-                return .init(content: [PhotoKitHelpers.textContent("Error: Album not found with identifier \(albumId)")], isError: true)
+                return ToolError.albumNotFound()
             }
 
             let fetchResult = PHAsset.fetchAssets(in: collection, options: nil)

@@ -52,13 +52,12 @@ actor PhotosServer {
     }
 
     private func handleToolCall(_ params: CallTool.Parameters) async throws -> CallTool.Result {
+        try Self.validateKnownToolName(params.name)
+
         do {
             try await PhotosAccess.ensureAuthorized()
         } catch {
-            return .init(
-                content: [PhotoKitHelpers.textContent("Error: \(error.localizedDescription)")],
-                isError: true
-            )
+            return ToolError.permissionDenied()
         }
 
         switch params.name {
@@ -87,11 +86,18 @@ actor PhotosServer {
         case "list_moments":
             return try await LibraryTools.listMoments(arguments: params.arguments)
         default:
-            return .init(
-                content: [PhotoKitHelpers.textContent("Unknown tool: \(params.name)")],
-                isError: true
-            )
+            throw MCPError.invalidParams("Unknown tool: \(params.name)")
         }
+    }
+
+    static func validateKnownToolName(_ name: String) throws {
+        guard isKnownTool(name) else {
+            throw MCPError.invalidParams("Unknown tool: \(name)")
+        }
+    }
+
+    static func isKnownTool(_ name: String) -> Bool {
+        ToolDefinitions.all.contains { $0.name == name }
     }
 
     private static func handleResourceRead(_ params: ReadResource.Parameters) async throws -> ReadResource.Result {

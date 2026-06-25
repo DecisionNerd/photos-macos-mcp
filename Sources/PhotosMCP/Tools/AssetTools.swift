@@ -16,7 +16,7 @@ enum AssetTools {
         return try await Task.detached(priority: .userInitiated) {
             let fetchResult = PHAsset.fetchAssets(withLocalIdentifiers: [assetId], options: nil)
             guard let asset = fetchResult.firstObject else {
-                return .init(content: [PhotoKitHelpers.textContent("Error: Asset not found with identifier \(assetId)")], isError: true)
+                return ToolError.assetNotFound()
             }
 
             let meta = PhotoKitHelpers.metadata(from: asset)
@@ -59,11 +59,11 @@ enum AssetTools {
         return await Task.detached(priority: .userInitiated) {
             let fetchResult = PHAsset.fetchAssets(withLocalIdentifiers: [assetId], options: nil)
             guard let asset = fetchResult.firstObject else {
-                return CallTool.Result(content: [PhotoKitHelpers.textContent("Error: Asset not found with identifier \(assetId)")], isError: true)
+                return ToolError.assetNotFound()
             }
 
             guard asset.mediaType == .image else {
-                return CallTool.Result(content: [PhotoKitHelpers.textContent("Error: Asset is not a photo (media type: \(asset.mediaType.rawValue))")], isError: true)
+                return ToolError.unsupportedMediaType(expected: "photo")
             }
 
             let classifications = await ContentClassifier.classifications(
@@ -78,7 +78,7 @@ enum AssetTools {
             do {
                 return try PhotoKitHelpers.structuredResult(response)
             } catch {
-                return CallTool.Result(content: [PhotoKitHelpers.textContent("Error: Failed to encode classifications: \(error.localizedDescription)")], isError: true)
+                return ToolError.internalFailure(code: "internal.classification_encoding_failed")
             }
         }.value
     }
