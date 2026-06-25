@@ -230,6 +230,34 @@ enum ToolDefinitions {
         ], required: ["earliest", "latest"])
     ], required: ["photos", "videos", "total_assets", "albums", "date_range"])
 
+    private static let diagnosticsSchema = object([
+        "server": object([
+            "name": type("string"),
+            "version": type("string"),
+            "sdk_spec_support": type("string")
+        ], required: ["name", "version", "sdk_spec_support"]),
+        "capabilities": object([
+            "tools": type("boolean"),
+            "resources": type("boolean"),
+            "logging": type("boolean")
+        ], required: ["tools", "resources", "logging"]),
+        "photos": object([
+            "required_access_level": type("string"),
+            "authorization_status": type("string")
+        ], required: ["required_access_level", "authorization_status"]),
+        "inventory": object([
+            "tool_count": type("integer"),
+            "resource_template_count": type("integer"),
+            "listed_resource_count": type("integer")
+        ], required: ["tool_count", "resource_template_count", "listed_resource_count"]),
+        "logging": object([
+            "mcp_logging": type("boolean"),
+            "default_level": type("string"),
+            "wrapper_log_hint": type("string")
+        ], required: ["mcp_logging", "default_level", "wrapper_log_hint"]),
+        "remediation": array(type("string"))
+    ], required: ["server", "capabilities", "photos", "inventory", "logging", "remediation"])
+
     private static let momentListSchema = object([
         "moments": array(object([
             "identifier": type("string"),
@@ -285,6 +313,13 @@ enum ToolDefinitions {
                 inputSchema: schema(properties: [:]),
                 annotations: .init(readOnlyHint: true),
                 outputSchema: libraryStatsSchema
+            ),
+            Tool(
+                name: "diagnose_photos_mcp",
+                description: "Return safe startup, MCP capability, logging, and Photos permission diagnostics without prompting for Photos access.",
+                inputSchema: schema(properties: [:]),
+                annotations: .init(readOnlyHint: true),
+                outputSchema: diagnosticsSchema
             ),
             Tool(
                 name: "search_photos",

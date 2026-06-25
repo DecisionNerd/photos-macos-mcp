@@ -10,6 +10,7 @@ struct ToolDefinitionsTests {
         let structuredToolNames = [
             "list_albums",
             "get_library_stats",
+            "diagnose_photos_mcp",
             "search_photos",
             "get_album_contents",
             "get_asset_details",
@@ -105,16 +106,40 @@ struct ToolDefinitionsTests {
 
     @Test("no argument tools use explicit empty object schemas")
     func noArgumentToolsUseExplicitEmptyObjectSchemas() {
-        let tool = ToolDefinitions.all.first { $0.name == "get_library_stats" }
+        for toolName in ["get_library_stats", "diagnose_photos_mcp"] {
+            let tool = ToolDefinitions.all.first { $0.name == toolName }
 
-        let schema = objectSchema(for: tool)
-        guard case .object(let properties)? = schema["properties"] else {
-            Issue.record("Expected get_library_stats properties object")
+            let schema = objectSchema(for: tool)
+            guard case .object(let properties)? = schema["properties"] else {
+                Issue.record("Expected \(toolName) properties object")
+                return
+            }
+
+            #expect(properties.isEmpty)
+            #expect(schema["additionalProperties"] == .bool(false))
+        }
+    }
+
+    @Test("diagnostics tool declares expected schema and read-only annotation")
+    func diagnosticsToolDeclaresExpectedSchemaAndReadOnlyAnnotation() {
+        let tool = ToolDefinitions.all.first { $0.name == "diagnose_photos_mcp" }
+
+        #expect(tool?.annotations.readOnlyHint == true)
+        guard case .object(let schema)? = tool?.outputSchema,
+              case .object(let properties)? = schema["properties"],
+              case .array(let required)? = schema["required"] else {
+            Issue.record("Expected diagnostics outputSchema")
             return
         }
 
-        #expect(properties.isEmpty)
-        #expect(schema["additionalProperties"] == .bool(false))
+        #expect(properties["server"] != nil)
+        #expect(properties["capabilities"] != nil)
+        #expect(properties["photos"] != nil)
+        #expect(properties["inventory"] != nil)
+        #expect(properties["logging"] != nil)
+        #expect(properties["remediation"] != nil)
+        #expect(required.contains(.string("photos")))
+        #expect(required.contains(.string("logging")))
     }
 
     @Test("pagination schemas include defaults and bounds")

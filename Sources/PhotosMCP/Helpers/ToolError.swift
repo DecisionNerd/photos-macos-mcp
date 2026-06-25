@@ -56,6 +56,26 @@ enum ToolError {
         )
     }
 
+    static func envelope(from result: CallTool.Result) -> ToolErrorEnvelope? {
+        guard case .object(let meta)? = result._meta?[metaKey],
+              case .string(let code)? = meta["code"],
+              case .string(let categoryValue)? = meta["category"],
+              let category = ToolErrorCategory(rawValue: categoryValue),
+              case .string(let message)? = meta["message"],
+              case .bool(let retryable)? = meta["retryable"],
+              case .string(let remediation)? = meta["remediation"] else {
+            return nil
+        }
+
+        return .init(
+            code: code,
+            category: category,
+            message: message,
+            retryable: retryable,
+            remediation: remediation
+        )
+    }
+
     static func validation(
         code: String,
         message: String,

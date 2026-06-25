@@ -1,5 +1,6 @@
 #!/bin/bash
-# Wrapper to run PhotosMCP and log any errors for debugging
+# Wrapper to run PhotosMCP and capture stderr process/transport diagnostics.
+# MCP logging is emitted through the protocol when the client supports it.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
