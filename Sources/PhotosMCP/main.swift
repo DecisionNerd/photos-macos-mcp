@@ -10,13 +10,10 @@ enum PhotosMCPMain {
         logger.logLevel = .debug
         #endif
         let server = PhotosServer(server: Server(
-            name: "PhotosMCP",
-            version: "1.0.0",
+            name: ServerMetadata.name,
+            version: ServerMetadata.version,
             instructions: "This server provides read-only access to the macOS Photos library. Use it to search photos, list albums, view metadata, and retrieve image thumbnails or full-size images.",
-            capabilities: .init(
-                resources: .init(),
-                tools: .init(listChanged: true)
-            )
+            capabilities: ServerMetadata.capabilities
         ))
 
         let transport = StdioTransport(logger: logger)

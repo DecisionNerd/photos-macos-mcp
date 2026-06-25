@@ -93,6 +93,7 @@ By default, the installer uses server name `photos` and installs the binary to `
 |------|-------------|
 | `list_albums` | List all user and smart albums (name, id, asset count, type) |
 | `get_library_stats` | Total photos, videos, albums, and date range |
+| `diagnose_photos_mcp` | Safe MCP capability, logging, install, and Photos permission diagnostics without prompting for Photos access |
 | `search_photos` | Search by date range, media type, favorites, keyword |
 | `get_album_contents` | Assets in an album by identifier |
 | `get_asset_details` | Full metadata for an asset |
@@ -104,7 +105,7 @@ By default, the installer uses server name `photos` and installs the binary to `
 | `get_photos_by_date` | Photos on a date or in a range |
 | `list_moments` | Moments/collections (iOS only on macOS) |
 
-Tool definitions use strict MCP `inputSchema` objects with machine-readable defaults, bounds, enums, required fields, and `additionalProperties: false`. Metadata, search, stats, and classification tools also declare MCP `outputSchema` values and return both `structuredContent` and JSON text content. Clients that support structured tool results can read typed data directly; older clients can continue parsing the text JSON. Image export tools return mixed MCP content instead of structured JSON: the first content item remains text for legacy/local clients, thumbnails may include inline image content, and bounded exports include `resource_link` content for resource-capable clients. Image tools do not declare `outputSchema`.
+Tool definitions use strict MCP `inputSchema` objects with machine-readable defaults, bounds, enums, required fields, and `additionalProperties: false`. Metadata, search, stats, diagnostics, and classification tools also declare MCP `outputSchema` values and return both `structuredContent` and JSON text content. Clients that support structured tool results can read typed data directly; older clients can continue parsing the text JSON. Image export tools return mixed MCP content instead of structured JSON: the first content item remains text for legacy/local clients, thumbnails may include inline image content, and bounded exports include `resource_link` content for resource-capable clients. Image tools do not declare `outputSchema`.
 
 All list/search tools support `limit` (default 50, min 1, max 200) and `offset` (default 0, min 0) for Photos application-level pagination. Paginated responses include `total`, `limit`, `offset`, and `next_offset`; use `next_offset` as the next `offset` value, or stop when it is `null`. This is separate from MCP protocol cursor pagination, which applies to protocol list methods such as `tools/list`, not Photos result tools. Runtime validation rejects unknown arguments and out-of-range values before PhotoKit, geocoding, or image export work begins.
 
@@ -123,6 +124,23 @@ Example validation error:
 ```
 
 Unknown tool names are returned as MCP protocol errors (`invalidParams`) instead of tool execution errors. This matches current MCP guidance: malformed or unsupported `tools/call` requests are protocol errors, while recoverable validation, permission, not-found, geocoding, and export failures are tool results with `isError: true`.
+
+## Diagnostics and Logging
+
+PhotosMCP declares the MCP `logging` capability and accepts `logging/setLevel`. The default MCP log threshold is `notice`; clients that support MCP logging can lower or raise it with levels such as `debug`, `info`, `notice`, `warning`, and `error`. Log notifications use names such as `photosmcp.server`, `photosmcp.tool`, `photosmcp.resource`, and `photosmcp.diagnostics`.
+
+Use `diagnose_photos_mcp` when Claude Desktop, Claude Code, or another stdio MCP client cannot see photos or resources. This tool does not request Photos authorization and does not read assets. It returns structured JSON with:
+
+- server version and SDK/spec support note;
+- declared MCP capabilities, including tools, resources, and logging;
+- current Photos authorization status and required PhotoKit access level;
+- tool/resource inventory counts;
+- wrapper log hint `${TMPDIR:-/tmp}/photos-mcp.log` when using `scripts/run-photos-mcp.sh`;
+- safe next steps for permission and startup troubleshooting.
+
+MCP logs and diagnostics are intentionally categorical. They may include event names, tool names, resource categories, status, duration, error code/category, and authorization status. They should not include asset identifiers, album identifiers, full `photos://` URIs, GPS coordinates, dates, place names, classification labels, exported image bytes, credentials, or temp image paths.
+
+For generic stdio clients, first confirm the configured command starts `.build/release/PhotosMCP`, then call `tools/list` and `diagnose_photos_mcp`. If MCP initialization fails before tools are available, use the wrapper log file above for local process/transport errors.
 
 ## MCP Resources
 
