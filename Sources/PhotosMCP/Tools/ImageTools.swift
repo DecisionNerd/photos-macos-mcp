@@ -185,17 +185,20 @@ private func saveToTempFile(_ data: Data, prefix: String) -> (path: String?, dis
 
 /// Cleans exported image temp files older than 1 hour to limit disk use and exposure window.
 enum TempFileCleanup {
-    private static let maxAgeSeconds: TimeInterval = 3600  // 1 hour
+    static let maxAgeSeconds: TimeInterval = 3600  // 1 hour
 
     static func cleanStaleFiles(in directory: URL) {
         let fm = FileManager.default
         guard let contents = try? fm.contentsOfDirectory(at: directory, includingPropertiesForKeys: [.creationDateKey]) else { return }
-        let cutoff = Date().addingTimeInterval(-maxAgeSeconds)
         for url in contents where url.pathExtension == "jpg" {
             guard let attrs = try? fm.attributesOfItem(atPath: url.path),
                   let creation = attrs[.creationDate] as? Date,
-                  creation < cutoff else { continue }
+                  shouldClean(pathExtension: url.pathExtension, ageSeconds: Date().timeIntervalSince(creation)) else { continue }
             try? fm.removeItem(at: url)
         }
+    }
+
+    static func shouldClean(pathExtension: String, ageSeconds: TimeInterval) -> Bool {
+        pathExtension == "jpg" && ageSeconds > maxAgeSeconds
     }
 }
