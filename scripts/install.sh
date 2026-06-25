@@ -25,6 +25,7 @@ usage() {
 Usage: $(basename "$0") [options]
 
 Build and install ${BIN_NAME}, then register it with Claude Desktop/Claude Code.
+Other MCP clients use manual configuration; see docs/client-setup.md.
 
 Options:
   --name <server-name>       MCP server name in config (default: ${SERVER_NAME})
