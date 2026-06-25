@@ -4,7 +4,7 @@ import Testing
 struct PrivacyBoundaryTests {
     @Test("Photos access policy uses least available read capable scope")
     func photosAccessPolicyUsesLeastAvailableReadCapableScope() {
-        #expect(String(describing: PhotosAccess.requiredAccessLevel) == "readWrite")
+        #expect(PhotosAccess.requiredAccessLevel == .readWrite)
     }
 
     @Test("permission denied error remains privacy safe")
