@@ -23,6 +23,9 @@ jobs:
       - name: Resolve dependencies
         run: swift package resolve
 
+      - name: Check MCP compatibility tracking
+        run: ./scripts/check_mcp_compatibility.sh
+
       - name: Build
         run: swift build
 
