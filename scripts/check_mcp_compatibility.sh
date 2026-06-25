@@ -2,6 +2,7 @@
 set -euo pipefail
 
 EXPECTED_SWIFT_SDK_VERSION="0.12.1"
+EXPECTED_SWIFT_SDK_REVISION="a0ae212ebf6eab5f754c3129608bc5557637e605"
 EXPECTED_MCP_SPEC_DATE="2025-11-25"
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -36,7 +37,9 @@ PY
 )
 
 [[ -n "$sdk_version" ]] || fail "swift-sdk version missing from Package.resolved"
+[[ -n "$sdk_revision" ]] || fail "swift-sdk revision missing from Package.resolved"
 [[ "$sdk_version" == "$EXPECTED_SWIFT_SDK_VERSION" ]] || fail "expected swift-sdk $EXPECTED_SWIFT_SDK_VERSION, found $sdk_version"
+[[ "$sdk_revision" == "$EXPECTED_SWIFT_SDK_REVISION" ]] || fail "expected swift-sdk revision $EXPECTED_SWIFT_SDK_REVISION, found $sdk_revision"
 
 if ! grep -q "swift-sdk.git\", from: \"$EXPECTED_SWIFT_SDK_VERSION\"" "$manifest_file"; then
   fail "Package.swift does not require swift-sdk from $EXPECTED_SWIFT_SDK_VERSION"
