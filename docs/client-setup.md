@@ -22,9 +22,9 @@ Replace `/absolute/path/to/photos-macos-mcp/.build/release/PhotosMCP` in the exa
 | --- | --- | --- |
 | Claude Desktop | Supported with JSON config or `scripts/install.sh` | Config shape documented and script-supported |
 | Claude Code | Supported with `claude mcp add` or `scripts/install.sh` | Command shape documented and script-supported |
-| Codex | Supported by stdio config | Documentation-sourced, not locally verified in this issue |
-| Cursor | Supported by MCP JSON config | Documentation-sourced, not locally verified in this issue |
-| Windsurf/Cascade | Supported by MCP JSON config | Documentation-sourced, not locally verified in this issue |
+| Codex | Documented stdio config | Documentation-sourced, not locally verified in this issue |
+| Cursor | Documented MCP JSON config | Documentation-sourced, not locally verified in this issue |
+| Windsurf/Cascade | Documented MCP JSON config | Documentation-sourced, not locally verified in this issue |
 | ChatGPT/OpenAI MCP | Local stdio is not directly applicable | Remote MCP only; out of scope |
 | Generic stdio/MCP Inspector | Supported when the client can launch a local command | Smoke-check locally where available |
 
