@@ -22,7 +22,7 @@ The executable will be at:
 
 ## Convenience Scripts
 
-Install from source and register the MCP server with Claude Desktop and Claude Code:
+Install from source and register the MCP server with Claude Desktop/Claude Code automation:
 
 ```bash
 ./scripts/install.sh
@@ -34,7 +34,7 @@ One-click rebuild and reinstall for local development:
 ./scripts/rebuild_reinstall.sh
 ```
 
-Remove Claude registrations and the installed binary:
+Remove Claude Desktop/Claude Code registrations and the installed binary:
 
 ```bash
 ./scripts/uninstall.sh
@@ -52,40 +52,39 @@ By default, the installer uses server name `photos` and installs the binary to `
 ./scripts/install.sh --name photos --install-dir "$HOME/.local/bin" --scope user
 ```
 
-## Claude Desktop App Integration
+The installer only writes Claude Desktop and Claude Code configuration. For Codex, Cursor, Windsurf/Cascade, ChatGPT/OpenAI MCP caveats, and generic stdio clients, see [Client Setup Matrix](docs/client-setup.md).
 
-1. **Build the project** (see above).
+## Client Setup
 
-2. **Add to Claude Desktop config**
-
-   Edit `~/Library/Application Support/Claude/claude_desktop_config.json`:
-
-   ```json
-   {
-     "mcpServers": {
-       "photos": {
-         "command": "/Users/YOUR_USERNAME/Developer/photos-macos-mcp/.build/release/PhotosMCP",
-         "args": []
-       }
-     }
-   }
-   ```
-
-   Replace `YOUR_USERNAME` (or the whole path) with the actual absolute path to your built binary, for example:
+PhotosMCP works as a local stdio MCP server for clients that can launch a local command. Always use an absolute path to the built binary:
 
 ```json
-"command": "/Users/max/Developer/photos-macos-mcp/.build/release/PhotosMCP"
+{
+  "mcpServers": {
+    "photos": {
+      "command": "/absolute/path/to/photos-macos-mcp/.build/release/PhotosMCP",
+      "args": []
+    }
+  }
+}
 ```
 
-3. **Grant Photos access**
+Supported documentation paths:
 
-   The PhotosMCP process (or the parent Claude app) needs access to your Photos library. If prompted, allow it in:
+- **Claude Desktop**: use `scripts/install.sh` or edit `~/Library/Application Support/Claude/claude_desktop_config.json`.
+- **Claude Code**: use `scripts/install.sh` or `claude mcp add --scope user photos -- /absolute/path/to/PhotosMCP`.
+- **Codex, Cursor, Windsurf/Cascade, and generic stdio clients**: use manual config examples in [docs/client-setup.md](docs/client-setup.md).
+- **ChatGPT/OpenAI MCP**: local stdio PhotosMCP is not directly applicable to hosted ChatGPT/API MCP workflows; see the limitation note in [docs/client-setup.md](docs/client-setup.md).
 
-   **System Settings → Privacy & Security → Photos**
+After configuring any local client, restart or refresh that client, then call `diagnose_photos_mcp` to confirm server capabilities and Photos authorization state.
 
-   If the server was spawned by the Claude desktop app, you may need to grant Photos access to the Claude app.
+## Photos Access for Local Clients
 
-4. **Restart Claude** so it picks up the new MCP server.
+The PhotosMCP process or the parent client app needs access to your Photos library. If prompted, allow it in:
+
+**System Settings > Privacy & Security > Photos**
+
+If the server was spawned by Claude Desktop, Claude Code, Codex, Cursor, Windsurf/Cascade, or another client, you may need to grant Photos access to that app or host terminal process. Limited Photos access means PhotosMCP only sees the assets macOS exposes to that client.
 
 ## MCP Tools
 
