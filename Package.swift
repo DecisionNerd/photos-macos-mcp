@@ -47,7 +47,7 @@ let package = Package(
         .executable(name: "PhotosMCP", targets: ["PhotosMCP"])
     ],
     dependencies: [
-        .package(url: "https://github.com/modelcontextprotocol/swift-sdk.git", from: "0.10.0")
+        .package(url: "https://github.com/modelcontextprotocol/swift-sdk.git", from: "0.12.1")
     ],
     targets: [
         .executableTarget(

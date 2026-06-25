@@ -115,6 +115,9 @@ enum PhotoResources {
     }
 
     static func parse(_ uri: String) throws -> Parsed {
+        guard hasValidPercentEscapes(uri) else {
+            throw ResourceError.invalidURI("Resource URI is not valid percent-encoding")
+        }
         guard let components = URLComponents(string: uri),
               components.scheme == "photos" else {
             throw ResourceError.invalidURI("Resource URI must use the photos scheme")
@@ -271,6 +274,9 @@ enum PhotoResources {
         guard !encodedIdentifier.contains("/") else {
             throw ResourceError.invalidURI("Asset identifier must be percent-encoded as one path segment")
         }
+        guard hasValidPercentEscapes(encodedIdentifier) else {
+            throw ResourceError.invalidURI("Asset identifier is not valid percent-encoding")
+        }
         guard let identifier = encodedIdentifier.removingPercentEncoding,
               !identifier.isEmpty else {
             throw ResourceError.invalidURI("Asset identifier is not valid percent-encoding")
@@ -285,5 +291,32 @@ enum PhotoResources {
         var allowed = CharacterSet.urlPathAllowed
         allowed.remove(charactersIn: "/?#[]@!$&'()*+,;=")
         return value.addingPercentEncoding(withAllowedCharacters: allowed) ?? ""
+    }
+
+    private static func hasValidPercentEscapes(_ value: String) -> Bool {
+        let scalars = Array(value.unicodeScalars)
+        var index = 0
+        while index < scalars.count {
+            if scalars[index] == "%" {
+                guard index + 2 < scalars.count,
+                      isHexDigit(scalars[index + 1]),
+                      isHexDigit(scalars[index + 2]) else {
+                    return false
+                }
+                index += 3
+            } else {
+                index += 1
+            }
+        }
+        return true
+    }
+
+    private static func isHexDigit(_ scalar: Unicode.Scalar) -> Bool {
+        switch scalar.value {
+        case 48...57, 65...70, 97...102:
+            return true
+        default:
+            return false
+        }
     }
 }
