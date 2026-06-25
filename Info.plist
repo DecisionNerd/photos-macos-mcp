@@ -3,6 +3,6 @@
 <plist version="1.0">
 <dict>
     <key>NSPhotoLibraryUsageDescription</key>
-    <string>PhotosMCP needs access to your Photos library to let AI assistants search and view your photos.</string>
+    <string>PhotosMCP requests Photos access so it can read your existing library for search, metadata, thumbnails, and image exports. PhotosMCP is read-only and does not modify your library.</string>
 </dict>
 </plist>

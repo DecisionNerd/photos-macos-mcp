@@ -3,15 +3,18 @@ import Photos
 
 /// Ensures Photos library access is granted before performing operations.
 enum PhotosAccess {
+    /// PhotoKit does not expose a read-only access level for reading existing library assets.
+    /// `.readWrite` is the least available scope that supports this server's read-only operations.
+    static let requiredAccessLevel: PHAccessLevel = .readWrite
 
     static func ensureAuthorized() async throws {
-        let status = PHPhotoLibrary.authorizationStatus(for: .readWrite)
+        let status = PHPhotoLibrary.authorizationStatus(for: requiredAccessLevel)
         switch status {
         case .authorized, .limited:
             return
         case .notDetermined:
             let newStatus = await withCheckedContinuation { (continuation: CheckedContinuation<PHAuthorizationStatus, Never>) in
-                PHPhotoLibrary.requestAuthorization(for: .readWrite) { status in
+                PHPhotoLibrary.requestAuthorization(for: requiredAccessLevel) { status in
                     continuation.resume(returning: status)
                 }
             }

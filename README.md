@@ -142,7 +142,7 @@ Image transfer uses a hybrid contract:
 
 ## Permissions
 
-The server uses `PHPhotoLibrary.requestAuthorization` and will show a system dialog on first use. If access is denied, tools return clear error messages.
+The server uses `PHPhotoLibrary.requestAuthorization(for: .readWrite)` and will show a system dialog on first use. PhotoKit's macOS access levels expose add-only and read/write modes; there is no read-only access level that can read existing library assets. PhotosMCP therefore requests read/write Photos authorization as the least available read-capable PhotoKit scope, but the server's own behavior remains read-only. If access is denied, tools return clear error messages.
 
 ## Read-Only
 
@@ -150,9 +150,13 @@ This server is read-only. It does not modify, delete, or create assets or albums
 
 ## Privacy & Data
 
+- **Limited Photos access**: If macOS grants limited library access, PhotosMCP can only search, count, list, read, export, and serve resources for assets visible in that limited Photos scope. Assets outside the granted subset may be absent from results or behave like not-found identifiers.
+- **Metadata returned to clients**: Tool results and `photos://asset/...` resources may include Photos local identifiers, dates, dimensions, media type/subtypes, favorite and hidden flags, and GPS coordinates when Photos has them.
 - **Place search** (`get_photos_by_place`): Place names you provide (e.g. "Valencia", "Paris") are sent to Apple's geocoding service to resolve coordinates. This may involve network requests.
-- **Image export**: Thumbnails and full images are written to a `PhotosMCP` subdirectory in the system temp folder. Files older than 1 hour are automatically deleted when new exports occur. Thumbnails at or below 1,500,000 bytes may also be sent inline through the MCP tool result.
-- **MCP resources**: Metadata and bounded JPEG resources are generated on demand from Photos asset identifiers. Resource URIs do not expose local filesystem paths and cannot read arbitrary temp files.
+- **iCloud-backed media**: Image export tools and `photos://export/...` resource reads allow PhotoKit network access so iCloud-backed assets can be downloaded from Apple when needed.
+- **Image export temp files**: Thumbnails and full images are written to a `PhotosMCP` subdirectory in the system temp folder. Files older than 1 hour are automatically deleted when new exports occur. Thumbnails at or below 1,500,000 bytes may also be sent inline through the MCP tool result.
+- **MCP resources**: Metadata and bounded JPEG resources are generated on demand from Photos asset identifiers. Resource URIs do not expose local filesystem paths and cannot read arbitrary temp files, but clients that receive `photos://asset/...` or `photos://export/...` links can see the encoded Photos local identifier.
+- **Logging**: Default server and wrapper logs are for transport/process diagnostics. They should not contain photo metadata, GPS coordinates, classifications, exported image contents, or temp export paths beyond user-facing tool results returned to the MCP client.
 
 ## Project Structure
 
