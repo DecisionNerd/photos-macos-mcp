@@ -20,11 +20,11 @@ enum ImageTools {
         return await Task.detached(priority: .userInitiated) {
             let fetchResult = PHAsset.fetchAssets(withLocalIdentifiers: [assetId], options: nil)
             guard let asset = fetchResult.firstObject else {
-                return CallTool.Result(content: [PhotoKitHelpers.textContent("Error: Asset not found with identifier \(assetId)")], isError: true)
+                return ToolError.assetNotFound()
             }
 
             guard asset.mediaType == .image else {
-                return CallTool.Result(content: [PhotoKitHelpers.textContent("Error: Asset is not a photo (media type: \(asset.mediaType.rawValue))")], isError: true)
+                return ToolError.unsupportedMediaType(expected: "photo")
             }
 
             do {
@@ -50,10 +50,7 @@ enum ImageTools {
                     isError: false
                 )
             } catch {
-                return CallTool.Result(
-                    content: [PhotoKitHelpers.textContent("Error: Failed to export thumbnail: \(error.localizedDescription)")],
-                    isError: true
-                )
+                return ToolError.exportFailed(kind: "thumbnail")
             }
         }.value
     }
@@ -74,11 +71,11 @@ enum ImageTools {
         return await Task.detached(priority: .userInitiated) {
             let fetchResult = PHAsset.fetchAssets(withLocalIdentifiers: [assetId], options: nil)
             guard let asset = fetchResult.firstObject else {
-                return CallTool.Result(content: [PhotoKitHelpers.textContent("Error: Asset not found with identifier \(assetId)")], isError: true)
+                return ToolError.assetNotFound()
             }
 
             guard asset.mediaType == .image else {
-                return CallTool.Result(content: [PhotoKitHelpers.textContent("Error: Asset is not a photo (media type: \(asset.mediaType.rawValue))")], isError: true)
+                return ToolError.unsupportedMediaType(expected: "photo")
             }
 
             var warning: String?
@@ -109,10 +106,7 @@ enum ImageTools {
                 )
                 return CallTool.Result(content: content, isError: false)
             } catch {
-                return CallTool.Result(
-                    content: [PhotoKitHelpers.textContent("Error: Failed to export image: \(error.localizedDescription)")],
-                    isError: true
-                )
+                return ToolError.exportFailed(kind: "full")
             }
         }.value
     }

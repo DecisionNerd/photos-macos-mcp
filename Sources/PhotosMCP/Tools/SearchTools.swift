@@ -223,7 +223,7 @@ enum SearchTools {
         let coordinate: (latitude: Double, longitude: Double)?
         do {
             guard let request = MKGeocodingRequest(addressString: placeName) else {
-                return .init(content: [PhotoKitHelpers.textContent("Error: Could not create geocoding request for '\(placeName)'")], isError: true)
+                return ToolError.geocodingRequestFailed()
             }
             coordinate = try await withCheckedThrowingContinuation { (cont: CheckedContinuation<(latitude: Double, longitude: Double)?, Error>) in
                 request.getMapItems { items, error in
@@ -236,10 +236,10 @@ enum SearchTools {
                 }
             }
         } catch {
-            return .init(content: [PhotoKitHelpers.textContent("Error: Could not find '\(placeName)': \(error.localizedDescription)")], isError: true)
+            return ToolError.geocodingFailed()
         }
         guard let coordinate else {
-            return .init(content: [PhotoKitHelpers.textContent("Error: No coordinates for '\(placeName)'")], isError: true)
+            return ToolError.geocodingNoCoordinates()
         }
 
         let lat = coordinate.latitude
